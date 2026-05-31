@@ -21,8 +21,10 @@ const HARDCODED: Location = {
   vendor_id: "hardcoded",
   latitude: 41.8827,
   longitude: -87.6233,
-  label: "Chicago Food Truck",
-  created_at: "",
+  timestamp: "",
+  is_active: true,
+  heading: null,
+  speed: null,
 };
 
 export default function MapComponent({ locations, viewState, onViewStateChange }: MapProps) {
@@ -44,7 +46,7 @@ export default function MapComponent({ locations, viewState, onViewStateChange }
     >
       {allLocations.map((loc) => (
         <Marker key={loc.id} latitude={loc.latitude} longitude={loc.longitude}>
-          <div style={{ fontSize: "1.5rem", cursor: "pointer" }} title={loc.label}>📍</div>
+          <div style={{ fontSize: "1.5rem", cursor: "pointer" }} title={`Vendor: ${loc.vendor_id}`}>📍</div>
         </Marker>
       ))}
     </MapGL>

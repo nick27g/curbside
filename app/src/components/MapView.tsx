@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import MapComponent from "./Map";
+import AddLocationForm from "./AddLocationForm";
 import { Location } from "@/lib/types";
 
 interface ViewState {
@@ -18,15 +19,34 @@ const INITIAL_VIEW: ViewState = {
 
 export default function MapView() {
   const [viewState, setViewState] = useState<ViewState>(INITIAL_VIEW);
-  const locations: Location[] = [];
+  const [locations, setLocations] = useState<Location[]>([]);
+
+  const fetchLocations = useCallback(async () => {
+    try {
+      const res = await fetch("/api/locations");
+      if (res.ok) {
+        const data = await res.json();
+        setLocations(data);
+      }
+    } catch {
+      // silently ignore fetch errors on mount
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLocations();
+  }, [fetchLocations]);
 
   return (
-    <div style={{ flex: 1 }}>
-      <MapComponent
-        locations={locations}
-        viewState={viewState}
-        onViewStateChange={setViewState}
-      />
+    <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+      <div style={{ flex: 1 }}>
+        <MapComponent
+          locations={locations}
+          viewState={viewState}
+          onViewStateChange={setViewState}
+        />
+      </div>
+      <AddLocationForm onLocationAdded={fetchLocations} />
     </div>
   );
 }

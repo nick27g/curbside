@@ -3,6 +3,8 @@ export interface Location {
   vendor_id: string;
   latitude: number;
   longitude: number;
-  label: string;
-  created_at: string;
+  timestamp: string;
+  is_active: boolean;
+  heading: number | null;
+  speed: number | null;
 }
