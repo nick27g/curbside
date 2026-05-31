@@ -1,16 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 interface Props {
   onLocationAdded: () => void;
 }
 
 export default function AddLocationForm({ onLocationAdded }: Props) {
+  const { profile } = useAuth();
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+
+  if (profile?.role !== "driver") return null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

@@ -28,8 +28,8 @@ drivers share location and get AI route suggestions.
 - /app/src/lib/types.ts — shared TypeScript types
 
 ## Current Status
-Sprint 1 complete — map on screen.
-Next task: Sprint 2 — database connection.
+Sprint 3 complete — auth and user roles.
+Next task: Sprint 3.5 — Driver Verification and Admin.
 
 ## Supabase Tables
 locations: id, vendor_id (uuid, FK to auth.users), latitude, longitude, 

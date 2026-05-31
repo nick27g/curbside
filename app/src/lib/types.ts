@@ -8,3 +8,9 @@ export interface Location {
   heading: number | null;
   speed: number | null;
 }
+
+export interface Profile {
+  id: string;
+  role: "driver" | "customer";
+  created_at: string;
+}
