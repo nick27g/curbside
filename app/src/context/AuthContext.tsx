@@ -80,11 +80,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isAdmin = profile?.is_admin === true;
 
-  // DEBUG — remove before Sprint 4
-  useEffect(() => {
-    console.log("[AuthContext]", { loading, user: user?.id ?? null, profile, isAdmin });
-  }, [loading, user, profile, isAdmin]);
-
   return (
     <AuthContext.Provider value={{ user, profile, loading, isAdmin, signOut }}>
       {children}
