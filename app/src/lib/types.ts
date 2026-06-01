@@ -12,5 +12,7 @@ export interface Location {
 export interface Profile {
   id: string;
   role: "driver" | "customer";
+  status: "pending" | "approved" | "rejected";
+  is_admin: boolean;
   created_at: string;
 }

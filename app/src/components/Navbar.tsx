@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
-  const { user, profile, loading, signOut } = useAuth();
+  const { user, profile, loading, isAdmin, signOut } = useAuth();
 
   return (
     <nav className="flex items-center justify-between px-6 py-3 bg-gray-900 text-white">
@@ -13,6 +13,11 @@ export default function Navbar() {
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         {!loading && user ? (
           <>
+            {isAdmin && (
+              <Link href="/admin" style={{ fontSize: 13, color: "#a78bfa" }}>
+                Admin
+              </Link>
+            )}
             {profile?.role === "driver" && (
               <span
                 style={{
@@ -65,7 +70,7 @@ export default function Navbar() {
           </>
         ) : null}
         <span className="text-sm text-gray-400" style={{ marginLeft: 8 }}>
-          Sprint 3 — Auth and User Roles
+          Sprint 3.5 — Driver Verification
         </span>
       </div>
     </nav>

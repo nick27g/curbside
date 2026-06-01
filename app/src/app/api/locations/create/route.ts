@@ -9,14 +9,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const serviceClient = createServiceRoleClient();
+
+  const { data: driverProfile } = await serviceClient
+    .from("profiles")
+    .select("status")
+    .eq("id", user.id)
+    .single();
+
+  if (driverProfile?.status !== "approved") {
+    return NextResponse.json({ error: "Your account is pending approval" }, { status: 403 });
+  }
+
   const body = await req.json();
   const { latitude, longitude } = body;
 
   if (latitude === undefined || longitude === undefined) {
     return NextResponse.json({ error: "latitude and longitude are required" }, { status: 400 });
   }
-
-  const serviceClient = createServiceRoleClient();
   const { data, error } = await serviceClient
     .from("locations")
     .insert({

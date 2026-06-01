@@ -16,6 +16,26 @@ export default function AddLocationForm({ onLocationAdded }: Props) {
 
   if (profile?.role !== "driver") return null;
 
+  if (profile.status === "pending") {
+    return (
+      <div style={{ padding: "12px 16px", background: "#1f2937", borderTop: "1px solid #374151" }}>
+        <p style={{ color: "#fcd34d", fontSize: 13, margin: 0 }}>
+          Your account is pending admin approval. You&apos;ll be notified when approved.
+        </p>
+      </div>
+    );
+  }
+
+  if (profile.status === "rejected") {
+    return (
+      <div style={{ padding: "12px 16px", background: "#1f2937", borderTop: "1px solid #374151" }}>
+        <p style={{ color: "#f87171", fontSize: 13, margin: 0 }}>
+          Your account has not been approved. Please contact support.
+        </p>
+      </div>
+    );
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStatus("loading");

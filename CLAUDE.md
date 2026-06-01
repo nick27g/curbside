@@ -28,11 +28,13 @@ drivers share location and get AI route suggestions.
 - /app/src/lib/types.ts — shared TypeScript types
 
 ## Current Status
-Sprint 3 complete — auth and user roles.
-Next task: Sprint 3.5 — Driver Verification and Admin.
+Sprint 3.5 complete — driver verification and admin dashboard.
+Next task: Sprint 4 — Real-Time Location.
 
 ## Supabase Tables
-locations: id, vendor_id (uuid, FK to auth.users), latitude, longitude, 
-           label, created_at. RLS enabled.
-profiles:  id (uuid, FK to auth.users), role (text: driver|customer), 
+locations: id, vendor_id (uuid, FK to auth.users), latitude, longitude,
+           timestamp, is_active, heading, speed. RLS enabled.
+profiles:  id (uuid, FK to auth.users), role (text: driver|customer),
+           status (text: pending|approved|rejected, default approved),
+           is_admin (boolean, default false),
            created_at. RLS enabled. Auto-populated via trigger.
