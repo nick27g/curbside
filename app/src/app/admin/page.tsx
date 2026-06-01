@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { Profile } from "@/lib/types";
 
 interface DriverRow extends Profile {
@@ -8,17 +9,19 @@ interface DriverRow extends Profile {
 }
 
 export default function AdminPage() {
+  const { loading: authLoading } = useAuth();
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [fetching, setFetching] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return;
     fetch("/api/admin/drivers")
       .then((r) => r.json())
       .then((data) => {
         setDrivers(Array.isArray(data) ? data : []);
-        setLoading(false);
+        setFetching(false);
       });
-  }, []);
+  }, [authLoading]);
 
   async function updateStatus(id: string, status: "approved" | "rejected") {
     const res = await fetch(`/api/admin/drivers/${id}`, {
@@ -34,7 +37,7 @@ export default function AdminPage() {
     }
   }
 
-  if (loading) {
+  if (authLoading || fetching) {
     return (
       <div style={{ padding: 40, color: "#9ca3af", fontSize: 14 }}>
         Loading drivers…
@@ -49,7 +52,6 @@ export default function AdminPage() {
           color: "white",
           fontSize: 22,
           fontWeight: 700,
-          marginBottom: 24,
           margin: "0 0 24px",
         }}
       >

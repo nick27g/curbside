@@ -19,7 +19,7 @@ const INITIAL_VIEW: ViewState = {
 };
 
 export default function MapView() {
-  const { profile } = useAuth();
+  const { profile, loading } = useAuth();
   const [viewState, setViewState] = useState<ViewState>(INITIAL_VIEW);
   const [locations, setLocations] = useState<Location[]>([]);
 
@@ -48,7 +48,7 @@ export default function MapView() {
           onViewStateChange={setViewState}
         />
       </div>
-      {profile?.role === "driver" && (
+      {!loading && profile?.role === "driver" && (
         <AddLocationForm onLocationAdded={fetchLocations} />
       )}
     </div>

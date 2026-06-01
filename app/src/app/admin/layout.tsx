@@ -1,27 +1,26 @@
-import { redirect } from "next/navigation";
-import { createAuthServerClient, createServiceRoleClient } from "@/lib/supabase/server";
+"use client";
+
+import { useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 
-export default async function AdminLayout({
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const authClient = await createAuthServerClient();
-  const {
-    data: { user },
-  } = await authClient.auth.getUser();
+  const { isAdmin, loading } = useAuth();
+  const router = useRouter();
 
-  if (!user) redirect("/");
+  useEffect(() => {
+    if (!loading && !isAdmin) {
+      router.replace("/");
+    }
+  }, [loading, isAdmin, router]);
 
-  const serviceClient = createServiceRoleClient();
-  const { data: profile } = await serviceClient
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile?.is_admin) redirect("/");
+  if (loading) return null;
+  if (!isAdmin) return null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>

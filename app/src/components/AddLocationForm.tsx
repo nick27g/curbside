@@ -8,12 +8,13 @@ interface Props {
 }
 
 export default function AddLocationForm({ onLocationAdded }: Props) {
-  const { profile } = useAuth();
+  const { profile, loading: authLoading } = useAuth();
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
 
+  if (authLoading) return null;
   if (profile?.role !== "driver") return null;
 
   if (profile.status === "pending") {
