@@ -33,6 +33,10 @@ export default function SignupPage() {
       return;
     }
 
+    // Trigger defaults role to "customer" regardless of user_metadata.
+    // Sync the chosen role from user_metadata into the profiles table.
+    await fetch("/api/profile", { method: "PATCH" });
+
     router.push("/");
     router.refresh();
   }

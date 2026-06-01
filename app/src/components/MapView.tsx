@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import MapComponent from "./Map";
 import AddLocationForm from "./AddLocationForm";
 import { Location } from "@/lib/types";
+import { useAuth } from "@/context/AuthContext";
 
 interface ViewState {
   longitude: number;
@@ -18,6 +19,7 @@ const INITIAL_VIEW: ViewState = {
 };
 
 export default function MapView() {
+  const { profile } = useAuth();
   const [viewState, setViewState] = useState<ViewState>(INITIAL_VIEW);
   const [locations, setLocations] = useState<Location[]>([]);
 
@@ -46,7 +48,9 @@ export default function MapView() {
           onViewStateChange={setViewState}
         />
       </div>
-      <AddLocationForm onLocationAdded={fetchLocations} />
+      {profile?.role === "driver" && (
+        <AddLocationForm onLocationAdded={fetchLocations} />
+      )}
     </div>
   );
 }
