@@ -16,10 +16,26 @@ export async function GET() {
     .from("profiles")
     .select("*")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Profile missing — trigger may not have fired; auto-create with role from metadata
+  if (!data) {
+    const role =
+      (user.user_metadata?.role as string) === "driver" ? "driver" : "customer";
+    const status = role === "driver" ? "pending" : "approved";
+    const { data: created, error: createError } = await serviceClient
+      .from("profiles")
+      .insert({ id: user.id, role, status })
+      .select()
+      .single();
+    if (createError) {
+      return NextResponse.json({ error: createError.message }, { status: 500 });
+    }
+    return NextResponse.json(created);
   }
 
   return NextResponse.json(data);
@@ -41,10 +57,10 @@ export async function PATCH() {
   }
 
   const serviceClient = createServiceRoleClient();
+  const status = role === "driver" ? "pending" : "approved";
   const { data, error } = await serviceClient
     .from("profiles")
-    .update({ role })
-    .eq("id", user.id)
+    .upsert({ id: user.id, role, status }, { onConflict: "id" })
     .select()
     .single();
 
