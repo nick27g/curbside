@@ -15,19 +15,36 @@ export default function AddLocationForm({ onLocationAdded }: Props) {
   const [message, setMessage] = useState("");
   const [isTracking, setIsTracking] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const routeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      if (routeIntervalRef.current) clearInterval(routeIntervalRef.current);
     };
   }, []);
 
-  function startTracking() {
+  async function startTracking() {
     if (!navigator.geolocation) {
       console.error("[GPS] Geolocation not supported by this browser.");
       return;
     }
     setIsTracking(true);
+
+    // Start route session and store the ID for the 30s interval.
+    try {
+      const res = await fetch("/api/route-sessions/start", { method: "POST" });
+      if (res.ok) {
+        const { id } = await res.json();
+        sessionIdRef.current = id;
+        console.log("[Route] Session started:", id);
+      }
+    } catch (err) {
+      console.error("[Route] Failed to start session:", err);
+    }
+
+    // 5s live-tracking interval (unchanged).
     const tick = () => {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
@@ -51,6 +68,31 @@ export default function AddLocationForm({ onLocationAdded }: Props) {
     };
     tick();
     intervalRef.current = setInterval(tick, 5000);
+
+    // 30s historical route-point interval.
+    const routeTick = () => {
+      if (!sessionIdRef.current) return;
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          try {
+            await fetch("/api/route-points/create", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ session_id: sessionIdRef.current, latitude, longitude }),
+            });
+          } catch (err) {
+            console.error("[Route] Failed to write route point:", err);
+          }
+        },
+        (err) => {
+          console.error("[Route GPS error]", err.message);
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    };
+    routeTick();
+    routeIntervalRef.current = setInterval(routeTick, 30000);
   }
 
   async function stopTracking() {
@@ -59,11 +101,28 @@ export default function AddLocationForm({ onLocationAdded }: Props) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
+    if (routeIntervalRef.current) {
+      clearInterval(routeIntervalRef.current);
+      routeIntervalRef.current = null;
+    }
     console.log("[GPS] Tracking stopped.");
     try {
       await fetch("/api/locations/deactivate", { method: "PATCH" });
     } catch (err) {
       console.error("[GPS] Failed to deactivate location:", err);
+    }
+    if (sessionIdRef.current) {
+      try {
+        await fetch("/api/route-sessions/stop", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: sessionIdRef.current }),
+        });
+        console.log("[Route] Session stopped:", sessionIdRef.current);
+      } catch (err) {
+        console.error("[Route] Failed to stop session:", err);
+      }
+      sessionIdRef.current = null;
     }
   }
 

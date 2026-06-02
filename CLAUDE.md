@@ -24,6 +24,11 @@ drivers share location and get AI route suggestions.
   an RLS SELECT policy for the authenticated role or UPDATE events won't arrive
 - PATCH /api/locations/deactivate sets is_active=false on all of a driver's
   active rows, which triggers the Realtime UPDATE that removes the map pin
+- Historical route storage runs in parallel to live tracking: a 30s interval
+  in AddLocationForm writes to route_points; session lifecycle managed via
+  /api/route-sessions/start (on Start Tracking) and /api/route-sessions/stop
+  (on Stop Tracking); sessionIdRef (useRef) holds the active session ID so
+  the interval closure always reads the current value without stale capture
 
 ## Project Structure
 - /app — Next.js app
@@ -34,13 +39,17 @@ drivers share location and get AI route suggestions.
 - /app/src/lib/types.ts — shared TypeScript types
 
 ## Current Status
-Sprint 4 complete — real-time location tracking.
-Next task: Sprint 5 — Heat Maps and AI Routes.
+Sprint 5.1 complete — historical route storage.
+Next task: Sprint 5.2 — Heat Map Layer.
 
 ## Supabase Tables
-locations: id, vendor_id (uuid, FK to auth.users), latitude, longitude,
-           timestamp, is_active, heading, speed. RLS enabled.
-profiles:  id (uuid, FK to auth.users), role (text: driver|customer),
-           status (text: pending|approved|rejected, default approved),
-           is_admin (boolean, default false),
-           created_at. RLS enabled. Auto-populated via trigger.
+locations:      id, vendor_id (uuid, FK to auth.users), latitude, longitude,
+                timestamp, is_active, heading, speed. RLS enabled.
+profiles:       id (uuid, FK to auth.users), role (text: driver|customer),
+                status (text: pending|approved|rejected, default approved),
+                is_admin (boolean, default false),
+                created_at. RLS enabled. Auto-populated via trigger.
+route_sessions: id, driver_id (uuid, FK to auth.users), started_at, ended_at,
+                is_active.
+route_points:   id, session_id (FK to route_sessions), driver_id (uuid, FK to
+                auth.users), latitude, longitude, recorded_at.
