@@ -1,7 +1,8 @@
 "use client";
 
-import MapGL, { Marker } from "react-map-gl/mapbox";
+import MapGL, { Marker, Source, Layer } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
+import type { FeatureCollection } from "geojson";
 import { Location } from "@/lib/types";
 
 interface ViewState {
@@ -14,6 +15,8 @@ interface MapProps {
   locations: Location[];
   viewState: ViewState;
   onViewStateChange: (vs: ViewState) => void;
+  heatmapData?: FeatureCollection | null;
+  showHeatmap?: boolean;
 }
 
 const HARDCODED: Location = {
@@ -27,7 +30,7 @@ const HARDCODED: Location = {
   speed: null,
 };
 
-export default function MapComponent({ locations, viewState, onViewStateChange }: MapProps) {
+export default function MapComponent({ locations, viewState, onViewStateChange, heatmapData, showHeatmap }: MapProps) {
   const allLocations = [HARDCODED, ...locations];
 
   return (
@@ -44,6 +47,19 @@ export default function MapComponent({ locations, viewState, onViewStateChange }
       mapStyle="mapbox://styles/mapbox/streets-v12"
       mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
     >
+      {showHeatmap && heatmapData && (
+        <Source id="route-heatmap" type="geojson" data={heatmapData}>
+          <Layer
+            id="route-heatmap-layer"
+            type="heatmap"
+            paint={{
+              "heatmap-radius": 70,
+              "heatmap-opacity": 0.75,
+              "heatmap-intensity": 1,
+            }}
+          />
+        </Source>
+      )}
       {allLocations.map((loc) => (
         <Marker key={loc.id} latitude={loc.latitude} longitude={loc.longitude}>
           <div style={{ fontSize: "1.5rem", cursor: "pointer" }} title={`Vendor: ${loc.vendor_id}`}>📍</div>

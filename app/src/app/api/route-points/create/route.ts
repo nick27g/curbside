@@ -36,8 +36,8 @@ export async function POST(req: NextRequest) {
     .insert({
       session_id,
       driver_id: user.id,
-      latitude: Number(latitude),
-      longitude: Number(longitude),
+      latitude: Math.round(Number(latitude) * 1000) / 1000,
+      longitude: Math.round(Number(longitude) * 1000) / 1000,
     })
     .select()
     .single();

@@ -29,6 +29,10 @@ drivers share location and get AI route suggestions.
   /api/route-sessions/start (on Start Tracking) and /api/route-sessions/stop
   (on Stop Tracking); sessionIdRef (useRef) holds the active session ID so
   the interval closure always reads the current value without stale capture
+- route_points coordinates are rounded to 3 decimal places on write (~111m
+  precision) for privacy; heatmap visual radius is 70px to match
+- Heatmap layer is driver-only: fetched from /api/route-points/heatmap (auth-
+  gated) and toggled via a button in MapView.tsx; customers never see it
 
 ## Project Structure
 - /app — Next.js app
@@ -39,8 +43,8 @@ drivers share location and get AI route suggestions.
 - /app/src/lib/types.ts — shared TypeScript types
 
 ## Current Status
-Sprint 5.1 complete — historical route storage.
-Next task: Sprint 5.2 — Heat Map Layer.
+Sprint 5.2 complete — heat map layer.
+Next task: Sprint 5.3 — Anthropic API connection.
 
 ## Supabase Tables
 locations:      id, vendor_id (uuid, FK to auth.users), latitude, longitude,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import type { FeatureCollection } from "geojson";
 import MapComponent from "./Map";
 import AddLocationForm from "./AddLocationForm";
 import { Location } from "@/lib/types";
@@ -38,6 +39,8 @@ export default function MapView() {
   const { profile, loading } = useAuth();
   const [viewState, setViewState] = useState<ViewState>(INITIAL_VIEW);
   const [locations, setLocations] = useState<Location[]>([]);
+  const [heatmapData, setHeatmapData] = useState<FeatureCollection | null>(null);
+  const [showHeatmap, setShowHeatmap] = useState(false);
 
   const fetchLocations = useCallback(async () => {
     try {
@@ -89,16 +92,49 @@ export default function MapView() {
     };
   }, []);
 
+  useEffect(() => {
+    if (loading || profile?.role !== "driver") return;
+    fetch("/api/route-points/heatmap")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (data) setHeatmapData(data); })
+      .catch(() => {});
+  }, [loading, profile]);
+
+  const isDriver = !loading && profile?.role === "driver";
+
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, position: "relative" }}>
         <MapComponent
           locations={locations}
           viewState={viewState}
           onViewStateChange={setViewState}
+          heatmapData={heatmapData}
+          showHeatmap={showHeatmap}
         />
+        {isDriver && (
+          <button
+            onClick={() => setShowHeatmap((v) => !v)}
+            style={{
+              position: "absolute",
+              top: 12,
+              right: 12,
+              padding: "6px 14px",
+              background: showHeatmap ? "#7c3aed" : "#374151",
+              color: "white",
+              border: "none",
+              borderRadius: 6,
+              cursor: "pointer",
+              fontSize: 12,
+              fontWeight: 600,
+              zIndex: 1,
+            }}
+          >
+            {showHeatmap ? "Hide Heat Map" : "Show Heat Map"}
+          </button>
+        )}
       </div>
-      {!loading && profile?.role === "driver" && (
+      {isDriver && (
         <AddLocationForm onLocationAdded={fetchLocations} />
       )}
     </div>
