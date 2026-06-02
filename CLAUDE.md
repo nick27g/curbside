@@ -18,6 +18,12 @@ drivers share location and get AI route suggestions.
 - Use anon key + cookie to verify identity, service role key to write
 - profiles table requires explicit RLS SELECT policy or reads return null
 - vendor_id on location rows is the real auth user UUID
+- Each GPS tick inserts a new locations row (no upsert); MapView deduplicates
+  by vendor_id client-side, keeping only the latest active row per driver
+- Realtime subscription uses the browser (anon) client; locations table needs
+  an RLS SELECT policy for the authenticated role or UPDATE events won't arrive
+- PATCH /api/locations/deactivate sets is_active=false on all of a driver's
+  active rows, which triggers the Realtime UPDATE that removes the map pin
 
 ## Project Structure
 - /app — Next.js app
@@ -28,8 +34,8 @@ drivers share location and get AI route suggestions.
 - /app/src/lib/types.ts — shared TypeScript types
 
 ## Current Status
-Sprint 3.5 complete — driver verification and admin dashboard.
-Next task: Sprint 4 — Real-Time Location.
+Sprint 4 complete — real-time location tracking.
+Next task: Sprint 5 — Heat Maps and AI Routes.
 
 ## Supabase Tables
 locations: id, vendor_id (uuid, FK to auth.users), latitude, longitude,

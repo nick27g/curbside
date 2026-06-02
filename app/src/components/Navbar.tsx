@@ -70,7 +70,7 @@ export default function Navbar() {
           </>
         ) : null}
         <span className="text-sm text-gray-400" style={{ marginLeft: 8 }}>
-          Sprint 3.5 — Driver Verification
+          Sprint 4 — Real-Time Location
         </span>
       </div>
     </nav>

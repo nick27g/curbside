@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 interface Props {
@@ -13,6 +13,59 @@ export default function AddLocationForm({ onLocationAdded }: Props) {
   const [longitude, setLongitude] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [isTracking, setIsTracking] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  function startTracking() {
+    if (!navigator.geolocation) {
+      console.error("[GPS] Geolocation not supported by this browser.");
+      return;
+    }
+    setIsTracking(true);
+    const tick = () => {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          console.log("[GPS]", latitude, longitude, "accuracy:", pos.coords.accuracy + "m");
+          try {
+            await fetch("/api/locations/create", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ latitude, longitude, is_active: true }),
+            });
+          } catch (err) {
+            console.error("[GPS] Failed to write location:", err);
+          }
+        },
+        (err) => {
+          console.error("[GPS error]", err.message);
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    };
+    tick();
+    intervalRef.current = setInterval(tick, 5000);
+  }
+
+  async function stopTracking() {
+    setIsTracking(false);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    console.log("[GPS] Tracking stopped.");
+    try {
+      await fetch("/api/locations/deactivate", { method: "PATCH" });
+    } catch (err) {
+      console.error("[GPS] Failed to deactivate location:", err);
+    }
+  }
 
   if (authLoading) return null;
   if (profile?.role !== "driver") return null;
@@ -72,7 +125,30 @@ export default function AddLocationForm({ onLocationAdded }: Props) {
   }
 
   return (
-    <div style={{ padding: "12px 16px", background: "#1f2937", borderTop: "1px solid #374151" }}>
+    <div style={{ padding: "12px 16px", background: "#1f2937", borderTop: "1px solid #374151", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <button
+          type="button"
+          onClick={isTracking ? stopTracking : startTracking}
+          style={{
+            padding: "8px 20px",
+            background: isTracking ? "#dc2626" : "#16a34a",
+            color: "white",
+            border: "none",
+            borderRadius: 6,
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          {isTracking ? "Stop Tracking" : "Start Tracking"}
+        </button>
+        {isTracking && (
+          <span style={{ color: "#34d399", fontSize: 12 }}>
+            GPS active — logging coordinates every 5s (check console)
+          </span>
+        )}
+      </div>
       <form onSubmit={handleSubmit} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <label style={{ color: "#9ca3af", fontSize: 11 }}>Latitude</label>
