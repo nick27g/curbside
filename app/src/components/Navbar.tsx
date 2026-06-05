@@ -70,7 +70,7 @@ export default function Navbar() {
           </>
         ) : null}
         <span className="text-sm text-gray-400" style={{ marginLeft: 8 }}>
-          Sprint 4 — Real-Time Location
+          Sprint 5.3 — AI Route Suggestions
         </span>
       </div>
     </nav>

@@ -9,6 +9,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"customer" | "driver">("customer");
+  const [vendorType, setVendorType] = useState<string>("food_truck");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        data: { role },
+        data: role === "driver" ? { role, vendor_type: vendorType } : { role },
       },
     });
 
@@ -94,6 +95,21 @@ export default function SignupPage() {
             ))}
           </div>
         </div>
+        {role === "driver" && (
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Vendor Type</label>
+            <select
+              value={vendorType}
+              onChange={(e) => setVendorType(e.target.value)}
+              style={{ ...inputStyle, cursor: "pointer" }}
+            >
+              <option value="ice_cream_truck">Ice Cream Truck</option>
+              <option value="food_truck">Food Truck</option>
+              <option value="hot_dog_cart">Hot Dog Cart</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        )}
         {error && <p style={{ color: "#f87171", fontSize: 13, margin: 0 }}>{error}</p>}
         <button type="submit" disabled={loading} style={btnStyle}>
           {loading ? "Creating account…" : "Sign Up"}

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import type { FeatureCollection } from "geojson";
 import MapComponent from "./Map";
 import AddLocationForm from "./AddLocationForm";
+import RoutePanel from "./RoutePanel";
 import { Location } from "@/lib/types";
 import { useAuth } from "@/context/AuthContext";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -41,6 +42,7 @@ export default function MapView() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [heatmapData, setHeatmapData] = useState<FeatureCollection | null>(null);
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [driverCoords, setDriverCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const fetchLocations = useCallback(async () => {
     try {
@@ -101,6 +103,7 @@ export default function MapView() {
   }, [loading, profile]);
 
   const isDriver = !loading && profile?.role === "driver";
+  const isApprovedDriver = isDriver && profile?.status === "approved";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
@@ -133,10 +136,18 @@ export default function MapView() {
             {showHeatmap ? "Hide Heat Map" : "Show Heat Map"}
           </button>
         )}
+        {isDriver && (
+          <div style={{ position: "absolute", bottom: 0, right: 0, zIndex: 1, width: 360 }}>
+            <AddLocationForm
+              onLocationAdded={fetchLocations}
+              onCoordsChange={setDriverCoords}
+            />
+            {isApprovedDriver && (
+              <RoutePanel driverCoords={driverCoords} />
+            )}
+          </div>
+        )}
       </div>
-      {isDriver && (
-        <AddLocationForm onLocationAdded={fetchLocations} />
-      )}
     </div>
   );
 }

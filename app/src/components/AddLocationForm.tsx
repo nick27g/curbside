@@ -5,9 +5,10 @@ import { useAuth } from "@/context/AuthContext";
 
 interface Props {
   onLocationAdded: () => void;
+  onCoordsChange?: (coords: { latitude: number; longitude: number } | null) => void;
 }
 
-export default function AddLocationForm({ onLocationAdded }: Props) {
+export default function AddLocationForm({ onLocationAdded, onCoordsChange }: Props) {
   const { profile, loading: authLoading } = useAuth();
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
@@ -50,6 +51,7 @@ export default function AddLocationForm({ onLocationAdded }: Props) {
         async (pos) => {
           const { latitude, longitude } = pos.coords;
           console.log("[GPS]", latitude, longitude, "accuracy:", pos.coords.accuracy + "m");
+          onCoordsChange?.({ latitude, longitude });
           try {
             await fetch("/api/locations/create", {
               method: "POST",
@@ -97,6 +99,7 @@ export default function AddLocationForm({ onLocationAdded }: Props) {
 
   async function stopTracking() {
     setIsTracking(false);
+    onCoordsChange?.(null);
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
