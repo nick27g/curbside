@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { NextRequest } from "next/server";
 
 export async function createAuthServerClient() {
   const cookieStore = await cookies();
@@ -24,6 +25,28 @@ export async function createAuthServerClient() {
       },
     }
   );
+}
+
+// Resolves the authenticated Supabase user from either a Bearer token
+// (mobile clients) or a session cookie (web clients). Cookie-based auth
+// is checked only if no valid Bearer token is present, so existing web
+// flows are completely unaffected.
+export async function getUserFromRequest(req: NextRequest) {
+  const authHeader = req.headers.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.slice(7);
+    const client = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    const { data: { user } } = await client.auth.getUser(token);
+    if (user) return user;
+  }
+
+  // Fall back to cookie-based session (web browser clients)
+  const authClient = await createAuthServerClient();
+  const { data: { user } } = await authClient.auth.getUser();
+  return user ?? null;
 }
 
 export function createServiceRoleClient() {

@@ -1,9 +1,8 @@
-import { NextResponse } from "next/server";
-import { createAuthServerClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { NextRequest, NextResponse } from "next/server";
+import { createServiceRoleClient, getUserFromRequest } from "@/lib/supabase/server";
 
-export async function PATCH() {
-  const authClient = await createAuthServerClient();
-  const { data: { user } } = await authClient.auth.getUser();
+export async function PATCH(req: NextRequest) {
+  const user = await getUserFromRequest(req);
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
