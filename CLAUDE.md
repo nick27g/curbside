@@ -9,13 +9,17 @@ drivers share location and get AI route suggestions.
 - Supabase (PostgreSQL + PostGIS, auth, realtime)
 - Mapbox (maps)
 - Anthropic API / Claude Sonnet (AI routes, Sprint 5)
-- Vercel (deployment)
+- Vercel (deployment) — https://curbside-nine.vercel.app
 
 ## Key Decisions
-- Next.js 16 uses proxy.ts not middleware.ts
+- Next.js 16 uses proxy.ts not middleware.ts; matcher excludes /api/ routes so
+  mobile Bearer tokens reach route handlers directly without being intercepted
 - Auth sessions stored in cookies via @supabase/ssr, not localStorage
 - API routes: check identity first (401 guard), then write to DB
 - Use anon key + cookie to verify identity, service role key to write
+- getUserFromRequest (src/lib/supabase/server.ts) supports dual auth: tries
+  Authorization: Bearer <token> header first (mobile clients), falls back to
+  cookies (web clients); all API route auth flows through this single helper
 - profiles table requires explicit RLS SELECT policy or reads return null
 - vendor_id on location rows is the real auth user UUID
 - Each GPS tick inserts a new locations row (no upsert); MapView deduplicates
@@ -89,13 +93,17 @@ drivers share location and get AI route suggestions.
 - /app/src/lib/types.ts — shared TypeScript types
 
 ## Current Status
-Sprints 5.4 and 5.5 complete. Next: Sprint 6 — Mobile App (React Native + Expo).
+Sprint 6.4 complete. Next: Sprint 6.5 — Push notifications for proximity alerts.
 
 Sprint 5.4 — Proximity alerts: customer geolocation (watchPosition), Haversine
 distance detection, dismissible amber banner when a driver pin is within 0.5mi.
 
 Sprint 5.5 — Community sightings: report form with rate limiting, sighting pins
 on map (amber circles), confirm/dismiss voting, 2-hour auto-expiry via DB default.
+
+Sprint 6.4 — Mobile auth bridge: proxy.ts matcher updated to exclude /api/ routes;
+getUserFromRequest updated to accept Bearer tokens so the React Native mobile app
+can authenticate against all existing API routes. Live on main at curbside-nine.vercel.app.
 
 ## Supabase Tables
 locations:      id, vendor_id (uuid, FK to auth.users), latitude, longitude,
