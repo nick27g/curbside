@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAuthServerClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { reverseGeocode } from "@/lib/reverseGeocode";
 
 const SYSTEM_PROMPT =
   "You are a route optimization assistant for street food vendors. " +
@@ -97,11 +98,13 @@ export async function POST(req: NextRequest) {
   const now = new Date();
   const timeStr = formatTime(now);
   const dayStr = DAYS[now.getDay()];
+  const neighborhood = await reverseGeocode(latitude, longitude);
 
   const header =
     `Vendor type: ${vendorType}\n` +
     `Current time: ${timeStr}\n` +
     `Day of week: ${dayStr}\n` +
+    `Driver is currently in ${neighborhood}.\n` +
     `Approximate location: ${latitude}, ${longitude}`;
 
   let userMessage: string;

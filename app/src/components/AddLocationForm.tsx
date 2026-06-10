@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { reverseGeocode } from "@/lib/reverseGeocode";
 
 interface Props {
   onLocationAdded: () => void;
@@ -15,9 +16,11 @@ export default function AddLocationForm({ onLocationAdded, onCoordsChange }: Pro
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const [isTracking, setIsTracking] = useState(false);
+  const [neighborhood, setNeighborhood] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const routeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const lastGeocodedPosRef = useRef<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     return () => {
@@ -52,6 +55,11 @@ export default function AddLocationForm({ onLocationAdded, onCoordsChange }: Pro
           const { latitude, longitude } = pos.coords;
           console.log("[GPS]", latitude, longitude, "accuracy:", pos.coords.accuracy + "m");
           onCoordsChange?.({ latitude, longitude });
+          const last = lastGeocodedPosRef.current;
+          if (!last || Math.hypot(latitude - last.lat, longitude - last.lng) > 0.0009) {
+            lastGeocodedPosRef.current = { lat: latitude, lng: longitude };
+            reverseGeocode(latitude, longitude).then(setNeighborhood);
+          }
           try {
             await fetch("/api/locations/create", {
               method: "POST",
@@ -99,6 +107,8 @@ export default function AddLocationForm({ onLocationAdded, onCoordsChange }: Pro
 
   async function stopTracking() {
     setIsTracking(false);
+    setNeighborhood(null);
+    lastGeocodedPosRef.current = null;
     onCoordsChange?.(null);
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -207,7 +217,7 @@ export default function AddLocationForm({ onLocationAdded, onCoordsChange }: Pro
         </button>
         {isTracking && (
           <span style={{ color: "#34d399", fontSize: 12 }}>
-            GPS active — logging coordinates every 5s (check console)
+            GPS active{neighborhood ? ` — ${neighborhood}` : ""}
           </span>
         )}
       </div>

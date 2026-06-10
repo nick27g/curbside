@@ -5,6 +5,7 @@ import MapGL, { Marker, Popup, Source, Layer } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { FeatureCollection } from "geojson";
 import { Location, Sighting } from "@/lib/types";
+import { reverseGeocode } from "@/lib/reverseGeocode";
 
 interface ViewState {
   longitude: number;
@@ -25,7 +26,23 @@ interface MapProps {
 export default function MapComponent({ locations, viewState, onViewStateChange, heatmapData, showHeatmap, sightings = [], onSightingVote }: MapProps) {
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   const [activeSightingId, setActiveSightingId] = useState<string | null>(null);
+  const [activeLocId, setActiveLocId] = useState<string | null>(null);
+  const [popupNeighborhood, setPopupNeighborhood] = useState<string | null>(null);
   const [voting, setVoting] = useState(false);
+
+  const activeLocation = locations.find((l) => l.id === activeLocId) ?? null;
+
+  async function handleLocationClick(loc: Location) {
+    if (activeLocId === loc.id) {
+      setActiveLocId(null);
+      setPopupNeighborhood(null);
+      return;
+    }
+    setActiveLocId(loc.id);
+    setPopupNeighborhood(null);
+    const name = await reverseGeocode(loc.latitude, loc.longitude);
+    setPopupNeighborhood(name);
+  }
 
   if (!token) {
     return (
@@ -83,9 +100,28 @@ export default function MapComponent({ locations, viewState, onViewStateChange, 
       )}
       {locations.map((loc) => (
         <Marker key={loc.id} latitude={loc.latitude} longitude={loc.longitude}>
-          <div style={{ fontSize: "1.5rem", cursor: "pointer" }} title={`Vendor: ${loc.vendor_id}`}>📍</div>
+          <div
+            style={{ fontSize: "1.5rem", cursor: "pointer" }}
+            onClick={() => handleLocationClick(loc)}
+          >📍</div>
         </Marker>
       ))}
+      {activeLocation && (
+        <Popup
+          latitude={activeLocation.latitude}
+          longitude={activeLocation.longitude}
+          onClose={() => { setActiveLocId(null); setPopupNeighborhood(null); }}
+          closeButton
+          anchor="bottom"
+        >
+          <div className="p-2 min-w-[160px]">
+            <p className="font-semibold text-sm text-gray-800">📍 Vendor</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {popupNeighborhood ?? "Locating…"}
+            </p>
+          </div>
+        </Popup>
+      )}
       {sightings.map((s) => (
         <Marker
           key={s.id}
