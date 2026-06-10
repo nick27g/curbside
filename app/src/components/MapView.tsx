@@ -222,8 +222,8 @@ export default function MapView() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-      <div style={{ flex: 1, position: "relative" }}>
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+      <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
         <MapComponent
           locations={locations}
           viewState={viewState}

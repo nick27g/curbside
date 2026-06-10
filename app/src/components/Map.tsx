@@ -34,9 +34,18 @@ const HARDCODED: Location = {
 };
 
 export default function MapComponent({ locations, viewState, onViewStateChange, heatmapData, showHeatmap, sightings = [], onSightingVote }: MapProps) {
+  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   const allLocations = [HARDCODED, ...locations];
   const [activeSightingId, setActiveSightingId] = useState<string | null>(null);
   const [voting, setVoting] = useState(false);
+
+  if (!token) {
+    return (
+      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#f3f4f6" }}>
+        <p style={{ color: "#6b7280", fontSize: 14 }}>Map unavailable — NEXT_PUBLIC_MAPBOX_TOKEN is not set.</p>
+      </div>
+    );
+  }
 
   const activeSighting = sightings.find((s) => s.id === activeSightingId) ?? null;
 
@@ -69,7 +78,7 @@ export default function MapComponent({ locations, viewState, onViewStateChange, 
       })}
       style={{ width: "100%", height: "100%" }}
       mapStyle="mapbox://styles/mapbox/streets-v12"
-      mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
+      mapboxAccessToken={token}
     >
       {showHeatmap && heatmapData && (
         <Source id="route-heatmap" type="geojson" data={heatmapData}>
