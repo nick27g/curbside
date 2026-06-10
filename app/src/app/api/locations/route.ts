@@ -5,7 +5,8 @@ export async function GET() {
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("locations")
-    .select("*");
+    .select("*")
+    .eq("is_active", true);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
