@@ -120,7 +120,7 @@ The project lives in two repos: this web repo (Next.js 16 on Vercel) and a separ
 ## Local Development
 
 ```bash
-git clone https://github.com/your-username/curbside.git
+git clone https://github.com/nick27g/curbside.git
 cd curbside/app
 npm install
 ```
