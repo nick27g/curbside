@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
   const { data: driverProfile } = await serviceClient
     .from("profiles")
-    .select("status")
+    .select("status, vendor_type")
     .eq("id", user.id)
     .single();
 
@@ -40,6 +40,18 @@ export async function POST(req: NextRequest) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // Fire-and-forget — must not await or block the location response
+  fetch(`${req.nextUrl.origin}/api/notifications/send-proximity`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      vendorId: user.id,
+      vendorType: driverProfile?.vendor_type ?? null,
+      latitude: Number(latitude),
+      longitude: Number(longitude),
+    }),
+  }).catch(() => {});
 
   return NextResponse.json(data, { status: 201 });
 }
