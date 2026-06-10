@@ -107,6 +107,16 @@ Built a companion Expo app with Mapbox native maps, reusing the same Supabase au
 
 ---
 
+## Sprint 7 — Location Intelligence
+
+### Sprint 7.1: Reverse Geocoding
+
+Replaced raw lat/lng displays with human-readable neighborhood names using the Mapbox Reverse Geocoding API. Driver GPS status shows the current neighborhood (debounced to fire only after ~100m of movement). Clicking a vendor pin on the customer map opens a popup with the neighborhood name. AI route suggestions now include the driver's current neighborhood in the prompt for more geographically grounded recommendations.
+
+![Sprint 7.1 — Reverse Geocoding](screenshots/sprint-7-1-reverse-geocoding.png)
+
+---
+
 ### Final Phase: Security, Polish, and Launch
 
 Ongoing hardening, UX polish, and launch prep across both the web and mobile apps.
