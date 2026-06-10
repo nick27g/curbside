@@ -83,6 +83,13 @@ drivers share location and get AI route suggestions.
   requires auth, does a select-then-update increment (no custom SQL function);
   returns 404 if sighting is missing or expired; vote closes the popup and
   triggers fetchSightings via onSightingVote callback prop on MapComponent
+- POST /api/notifications/send-proximity accepts { customerId, vendorId,
+  vendorType, distance } and sends a push notification to the customer via
+  their stored Expo push token; requires service role auth; live on Vercel
+- /api/locations/create fires POST /api/notifications/send-proximity
+  fire-and-forget on every driver GPS tick: fetches all nearby customers
+  (within 0.5mi Haversine), looks up their push tokens, and dispatches
+  notifications without blocking the location insert response
 
 ## Project Structure
 - /app — Next.js app
@@ -93,7 +100,7 @@ drivers share location and get AI route suggestions.
 - /app/src/lib/types.ts — shared TypeScript types
 
 ## Current Status
-Sprint 6.4 complete. Next: Sprint 6.5 — Push notifications for proximity alerts.
+Sprint 6.5 server-side complete. Next: Final Phase — Security, Polish, and Launch.
 
 Sprint 5.4 — Proximity alerts: customer geolocation (watchPosition), Haversine
 distance detection, dismissible amber banner when a driver pin is within 0.5mi.
@@ -104,6 +111,10 @@ on map (amber circles), confirm/dismiss voting, 2-hour auto-expiry via DB defaul
 Sprint 6.4 — Mobile auth bridge: proxy.ts matcher updated to exclude /api/ routes;
 getUserFromRequest updated to accept Bearer tokens so the React Native mobile app
 can authenticate against all existing API routes. Live on main at curbside-nine.vercel.app.
+
+Sprint 6.5 — Server-side push notification proximity trigger: POST
+/api/notifications/send-proximity live on Vercel; /api/locations/create triggers
+proximity notifications fire-and-forget on every driver GPS update.
 
 ## Supabase Tables
 locations:      id, vendor_id (uuid, FK to auth.users), latitude, longitude,

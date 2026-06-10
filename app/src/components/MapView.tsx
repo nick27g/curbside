@@ -125,7 +125,28 @@ export default function MapView() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "locations" },
         (payload) => {
-          setLocations((prev) => upsertByVendor(prev, payload.new as Location));
+          const loc = payload.new as Location;
+          if (!loc.vendor_id) return;
+          if (!loc.is_active) {
+            setLocations((prev) => prev.filter((l) => l.vendor_id !== loc.vendor_id));
+          } else {
+            setLocations((prev) => upsertByVendor(prev, loc));
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "locations" },
+        (payload) => {
+          // Supabase fires DELETE (not UPDATE) when RLS makes the post-update row
+          // invisible to the subscriber — e.g. is_active flips to false and the
+          // SELECT policy only exposes active rows. payload.old has at minimum the PK.
+          const old = payload.old as Partial<Location>;
+          if (old.vendor_id) {
+            setLocations((prev) => prev.filter((l) => l.vendor_id !== old.vendor_id));
+          } else if (old.id) {
+            setLocations((prev) => prev.filter((l) => l.id !== old.id));
+          }
         }
       )
       .subscribe();
