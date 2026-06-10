@@ -4,12 +4,20 @@ import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { reverseGeocode } from "@/lib/reverseGeocode";
 
+interface GeocodingFeature {
+  id: string;
+  place_name: string;
+  center: [number, number];
+}
+
 interface Props {
   onLocationAdded: () => void;
   onCoordsChange?: (coords: { latitude: number; longitude: number } | null) => void;
+  flyTo?: (center: [number, number]) => void;
+  onTargetLocationChange?: (place: string | null) => void;
 }
 
-export default function AddLocationForm({ onLocationAdded, onCoordsChange }: Props) {
+export default function AddLocationForm({ onLocationAdded, onCoordsChange, flyTo, onTargetLocationChange }: Props) {
   const { profile, loading: authLoading } = useAuth();
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
@@ -17,17 +25,66 @@ export default function AddLocationForm({ onLocationAdded, onCoordsChange }: Pro
   const [message, setMessage] = useState("");
   const [isTracking, setIsTracking] = useState(false);
   const [neighborhood, setNeighborhood] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<GeocodingFeature[]>([]);
+  const [showResults, setShowResults] = useState(false);
+  const [targetLocation, setTargetLocation] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const routeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const lastGeocodedPosRef = useRef<{ lat: number; lng: number } | null>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (routeIntervalRef.current) clearInterval(routeIntervalRef.current);
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     };
   }, []);
+
+  function handleSearchChange(value: string) {
+    setSearchQuery(value);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    if (!value.trim()) {
+      setSearchResults([]);
+      setShowResults(false);
+      return;
+    }
+    searchDebounceRef.current = setTimeout(async () => {
+      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+      if (!token) return;
+      try {
+        const res = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(value)}.json?proximity=-87.6298,41.8781&bbox=-88.0,41.6,-87.5,42.1&access_token=${token}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setSearchResults(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (data.features ?? []).slice(0, 5).map((f: any) => ({
+              id: f.id,
+              place_name: f.place_name,
+              center: f.center,
+            }))
+          );
+          setShowResults(true);
+        }
+      } catch {
+        // silently ignore
+      }
+    }, 300);
+  }
+
+  function handleSelectResult(feature: GeocodingFeature) {
+    const shortName = feature.place_name.split(",").slice(0, 2).join(",").trim();
+    setSearchQuery(feature.place_name.split(",")[0].trim());
+    setShowResults(false);
+    setSearchResults([]);
+    setTargetLocation(shortName);
+    onTargetLocationChange?.(shortName);
+    flyTo?.(feature.center);
+  }
 
   async function startTracking() {
     if (!navigator.geolocation) {
@@ -108,6 +165,8 @@ export default function AddLocationForm({ onLocationAdded, onCoordsChange }: Pro
   async function stopTracking() {
     setIsTracking(false);
     setNeighborhood(null);
+    setTargetLocation(null);
+    onTargetLocationChange?.(null);
     lastGeocodedPosRef.current = null;
     onCoordsChange?.(null);
     if (intervalRef.current) {
@@ -197,7 +256,62 @@ export default function AddLocationForm({ onLocationAdded, onCoordsChange }: Pro
   }
 
   return (
-    <div style={{ padding: "12px 16px", background: "#1f2937", borderTop: "1px solid #374151", display: "flex", flexDirection: "column", gap: 12 }}>
+    <div style={{ background: "#1f2937", borderTop: "1px solid #374151", display: "flex", flexDirection: "column" }}>
+      {/* ── Location search ── */}
+      <div style={{ padding: "10px 16px", borderBottom: "1px solid #374151" }}>
+        <div style={{ position: "relative" }}>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            onBlur={() => setTimeout(() => setShowResults(false), 150)}
+            onFocus={() => { if (searchResults.length > 0) setShowResults(true); }}
+            placeholder="Search neighborhoods & places…"
+            style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }}
+          />
+          {showResults && searchResults.length > 0 && (
+            <div style={{
+              position: "absolute",
+              bottom: "calc(100% + 4px)",
+              left: 0,
+              right: 0,
+              background: "#1f2937",
+              border: "1px solid #4b5563",
+              borderRadius: 6,
+              zIndex: 20,
+              overflow: "hidden",
+            }}>
+              {searchResults.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onMouseDown={() => handleSelectResult(r)}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "8px 12px",
+                    background: "none",
+                    border: "none",
+                    borderBottom: "1px solid #374151",
+                    color: "#d1d5db",
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  {r.place_name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        {targetLocation && (
+          <p style={{ color: "#60a5fa", fontSize: 12, margin: "6px 0 0" }}>
+            Heading to: {targetLocation}
+          </p>
+        )}
+      </div>
+    <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <button
           type="button"
@@ -268,6 +382,7 @@ export default function AddLocationForm({ onLocationAdded, onCoordsChange }: Pro
           </span>
         )}
       </form>
+    </div>
     </div>
   );
 }

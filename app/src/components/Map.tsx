@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import MapGL, { Marker, Popup, Source, Layer } from "react-map-gl/mapbox";
+import MapGL, { Marker, Popup, Source, Layer, MapRef } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { FeatureCollection } from "geojson";
 import { Location, Sighting } from "@/lib/types";
@@ -21,9 +21,10 @@ interface MapProps {
   showHeatmap?: boolean;
   sightings?: Sighting[];
   onSightingVote?: () => void;
+  mapRef?: React.RefObject<MapRef | null>;
 }
 
-export default function MapComponent({ locations, viewState, onViewStateChange, heatmapData, showHeatmap, sightings = [], onSightingVote }: MapProps) {
+export default function MapComponent({ locations, viewState, onViewStateChange, heatmapData, showHeatmap, sightings = [], onSightingVote, mapRef }: MapProps) {
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   const [activeSightingId, setActiveSightingId] = useState<string | null>(null);
   const [activeLocId, setActiveLocId] = useState<string | null>(null);
@@ -73,6 +74,7 @@ export default function MapComponent({ locations, viewState, onViewStateChange, 
 
   return (
     <MapGL
+      ref={mapRef}
       longitude={viewState.longitude}
       latitude={viewState.latitude}
       zoom={viewState.zoom}

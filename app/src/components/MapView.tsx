@@ -8,6 +8,7 @@ import RoutePanel from "./RoutePanel";
 import { Location, Sighting } from "@/lib/types";
 import { useAuth } from "@/context/AuthContext";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { MapRef } from "react-map-gl/mapbox";
 
 interface ViewState {
   longitude: number;
@@ -49,7 +50,9 @@ function upsertByVendor(prev: Location[], incoming: Location): Location[] {
 
 export default function MapView() {
   const { profile, loading } = useAuth();
+  const mapRef = useRef<MapRef>(null);
   const [viewState, setViewState] = useState<ViewState>(INITIAL_VIEW);
+  const [targetLocation, setTargetLocation] = useState<string | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
   const [heatmapData, setHeatmapData] = useState<FeatureCollection | null>(null);
   const [showHeatmap, setShowHeatmap] = useState(false);
@@ -200,6 +203,10 @@ export default function MapView() {
       .catch(() => {});
   }, [loading, profile]);
 
+  const flyTo = useCallback((center: [number, number]) => {
+    mapRef.current?.flyTo({ center, zoom: 14 });
+  }, []);
+
   const isDriver = !loading && profile?.role === "driver";
   const isApprovedDriver = isDriver && profile?.status === "approved";
   const isCustomer = !loading && profile?.role === "customer";
@@ -246,6 +253,7 @@ export default function MapView() {
     <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
       <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
         <MapComponent
+          mapRef={mapRef}
           locations={locations}
           viewState={viewState}
           onViewStateChange={setViewState}
@@ -346,9 +354,11 @@ export default function MapView() {
             <AddLocationForm
               onLocationAdded={fetchLocations}
               onCoordsChange={setDriverCoords}
+              flyTo={flyTo}
+              onTargetLocationChange={setTargetLocation}
             />
             {isApprovedDriver && (
-              <RoutePanel driverCoords={driverCoords} />
+              <RoutePanel driverCoords={driverCoords} targetLocation={targetLocation} />
             )}
           </div>
         )}

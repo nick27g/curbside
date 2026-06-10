@@ -10,6 +10,7 @@ interface Suggestion {
 
 interface Props {
   driverCoords: { latitude: number; longitude: number } | null;
+  targetLocation?: string | null;
 }
 
 const TIER_LABELS: Record<number, string> = {
@@ -18,7 +19,7 @@ const TIER_LABELS: Record<number, string> = {
   3: "Based on your full route patterns",
 };
 
-export default function RoutePanel({ driverCoords }: Props) {
+export default function RoutePanel({ driverCoords, targetLocation }: Props) {
   const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +34,7 @@ export default function RoutePanel({ driverCoords }: Props) {
       const res = await fetch("/api/ai/route-suggest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(driverCoords),
+        body: JSON.stringify({ ...driverCoords, targetLocation: targetLocation ?? null }),
       });
       const json = await res.json();
       if (!res.ok) {

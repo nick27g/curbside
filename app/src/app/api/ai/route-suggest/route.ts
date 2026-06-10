@@ -55,10 +55,12 @@ export async function POST(req: NextRequest) {
   // ── 2. PARSE REQUEST BODY ──────────────────────────────────────────────────
   let latitude: number;
   let longitude: number;
+  let targetLocation: string | null = null;
   try {
     const body = await req.json();
     latitude = body.latitude;
     longitude = body.longitude;
+    targetLocation = typeof body.targetLocation === "string" ? body.targetLocation : null;
     if (typeof latitude !== "number" || typeof longitude !== "number") {
       throw new Error("Invalid coordinates");
     }
@@ -105,6 +107,7 @@ export async function POST(req: NextRequest) {
     `Current time: ${timeStr}\n` +
     `Day of week: ${dayStr}\n` +
     `Driver is currently in ${neighborhood}.\n` +
+    (targetLocation ? `Driver is heading to: ${targetLocation}.\n` : "") +
     `Approximate location: ${latitude}, ${longitude}`;
 
   let userMessage: string;
