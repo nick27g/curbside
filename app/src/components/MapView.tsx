@@ -262,6 +262,24 @@ export default function MapView() {
           sightings={sightings}
           onSightingVote={fetchSightings}
         />
+        {isCustomer && locations.length === 0 && (
+          <div style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            background: "rgba(255,255,255,0.85)",
+            backdropFilter: "blur(4px)",
+            borderRadius: 12,
+            padding: "14px 20px",
+            pointerEvents: "none",
+            textAlign: "center",
+          }}>
+            <p style={{ margin: 0, fontSize: 14, color: "#374151", fontWeight: 500 }}>
+              No vendors are active right now. Check back soon! 🍦
+            </p>
+          </div>
+        )}
         {nearbyVendor !== null && !dismissed && (
           <div className="absolute top-0 left-0 right-0 z-10 bg-amber-100 text-amber-900 shadow-md rounded-b-lg px-4 py-3 flex items-start justify-between">
             <div>

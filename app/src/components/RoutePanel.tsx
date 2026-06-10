@@ -54,6 +54,7 @@ export default function RoutePanel({ driverCoords, targetLocation }: Props) {
 
   return (
     <div style={{ padding: "12px 16px", background: "#111827", borderTop: "1px solid #374151", display: "flex", flexDirection: "column", gap: 10 }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       {/* ── Button row ── */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <button
@@ -70,9 +71,23 @@ export default function RoutePanel({ driverCoords, targetLocation }: Props) {
             fontSize: 13,
             fontWeight: 600,
             transition: "background 0.15s",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
           }}
         >
-          {loading ? "Finding best routes…" : !driverCoords ? "Tracking required" : "Get Route Suggestion"}
+          {loading && (
+            <span style={{
+              width: 12,
+              height: 12,
+              border: "2px solid rgba(255,255,255,0.3)",
+              borderTopColor: "white",
+              borderRadius: "50%",
+              display: "inline-block",
+              animation: "spin 0.7s linear infinite",
+            }} />
+          )}
+          {loading ? "Thinking…" : !driverCoords ? "Tracking required" : "Get Route Suggestion"}
         </button>
         {tier !== null && !loading && (
           <span style={{ color: "#9ca3af", fontSize: 11 }}>{TIER_LABELS[tier]}</span>
@@ -86,7 +101,7 @@ export default function RoutePanel({ driverCoords, targetLocation }: Props) {
 
       {/* ── Suggestion cards ── */}
       {suggestions && suggestions.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 220, overflowY: "auto" }}>
           {suggestions.map((s, i) => (
             <div
               key={i}

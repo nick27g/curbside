@@ -163,6 +163,7 @@ export default function AddLocationForm({ onLocationAdded, onCoordsChange, flyTo
   }
 
   async function stopTracking() {
+    if (!window.confirm("Stop tracking and go offline?")) return;
     setIsTracking(false);
     setNeighborhood(null);
     setTargetLocation(null);
@@ -266,7 +267,7 @@ export default function AddLocationForm({ onLocationAdded, onCoordsChange, flyTo
             onChange={(e) => handleSearchChange(e.target.value)}
             onBlur={() => setTimeout(() => setShowResults(false), 150)}
             onFocus={() => { if (searchResults.length > 0) setShowResults(true); }}
-            placeholder="Search neighborhoods & places…"
+            placeholder="Search Chicago neighborhoods…"
             style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }}
           />
           {showResults && searchResults.length > 0 && (
