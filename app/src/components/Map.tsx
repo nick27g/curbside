@@ -22,20 +22,8 @@ interface MapProps {
   onSightingVote?: () => void;
 }
 
-const HARDCODED: Location = {
-  id: "hardcoded-1",
-  vendor_id: "hardcoded",
-  latitude: 41.8827,
-  longitude: -87.6233,
-  timestamp: "",
-  is_active: true,
-  heading: null,
-  speed: null,
-};
-
 export default function MapComponent({ locations, viewState, onViewStateChange, heatmapData, showHeatmap, sightings = [], onSightingVote }: MapProps) {
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-  const allLocations = [HARDCODED, ...locations];
   const [activeSightingId, setActiveSightingId] = useState<string | null>(null);
   const [voting, setVoting] = useState(false);
 
@@ -93,7 +81,7 @@ export default function MapComponent({ locations, viewState, onViewStateChange, 
           />
         </Source>
       )}
-      {allLocations.map((loc) => (
+      {locations.map((loc) => (
         <Marker key={loc.id} latitude={loc.latitude} longitude={loc.longitude}>
           <div style={{ fontSize: "1.5rem", cursor: "pointer" }} title={`Vendor: ${loc.vendor_id}`}>📍</div>
         </Marker>
