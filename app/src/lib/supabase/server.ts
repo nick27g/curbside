@@ -33,19 +33,15 @@ export async function createAuthServerClient() {
 // flows are completely unaffected.
 export async function getUserFromRequest(req: NextRequest) {
   const authHeader = req.headers.get("Authorization");
-  console.log("[getUserFromRequest] Authorization header present:", !!authHeader);
 
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
-    console.log("[getUserFromRequest] Token (first 20):", token.slice(0, 20));
 
     const client = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
-    const { data: { user }, error } = await client.auth.getUser(token);
-    console.log("[getUserFromRequest] getUser error:", error ?? "none");
-    console.log("[getUserFromRequest] getUser user:", user ? `present (id: ${user.id})` : "null");
+    const { data: { user } } = await client.auth.getUser(token);
 
     if (user) return user;
   }
