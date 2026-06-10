@@ -70,7 +70,7 @@ export default function Navbar() {
           </>
         ) : null}
         <span className="text-sm text-gray-400" style={{ marginLeft: 8 }}>
-          Sprint 7.1 — Reverse Geocoding
+          Sprint 7.2 — Location Search
         </span>
       </div>
     </nav>
