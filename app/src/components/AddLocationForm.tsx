@@ -15,9 +15,10 @@ interface Props {
   onCoordsChange?: (coords: { latitude: number; longitude: number } | null) => void;
   flyTo?: (center: [number, number]) => void;
   onTargetLocationChange?: (place: string | null) => void;
+  onDestinationCoordsChange?: (coords: [number, number] | null) => void;
 }
 
-export default function AddLocationForm({ onLocationAdded, onCoordsChange, flyTo, onTargetLocationChange }: Props) {
+export default function AddLocationForm({ onLocationAdded, onCoordsChange, flyTo, onTargetLocationChange, onDestinationCoordsChange }: Props) {
   const { profile, loading: authLoading } = useAuth();
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
@@ -49,6 +50,9 @@ export default function AddLocationForm({ onLocationAdded, onCoordsChange, flyTo
     if (!value.trim()) {
       setSearchResults([]);
       setShowResults(false);
+      setTargetLocation(null);
+      onTargetLocationChange?.(null);
+      onDestinationCoordsChange?.(null);
       return;
     }
     searchDebounceRef.current = setTimeout(async () => {
@@ -83,6 +87,7 @@ export default function AddLocationForm({ onLocationAdded, onCoordsChange, flyTo
     setSearchResults([]);
     setTargetLocation(shortName);
     onTargetLocationChange?.(shortName);
+    onDestinationCoordsChange?.(feature.center);
     flyTo?.(feature.center);
   }
 
@@ -168,6 +173,7 @@ export default function AddLocationForm({ onLocationAdded, onCoordsChange, flyTo
     setNeighborhood(null);
     setTargetLocation(null);
     onTargetLocationChange?.(null);
+    onDestinationCoordsChange?.(null);
     lastGeocodedPosRef.current = null;
     onCoordsChange?.(null);
     if (intervalRef.current) {

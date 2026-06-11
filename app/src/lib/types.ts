@@ -9,6 +9,7 @@ export interface Location {
   is_active: boolean;
   heading: number | null;
   speed: number | null;
+  vendor_type: VendorType | null;
 }
 
 export interface Sighting {

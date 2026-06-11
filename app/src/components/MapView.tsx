@@ -53,6 +53,7 @@ export default function MapView() {
   const mapRef = useRef<MapRef>(null);
   const [viewState, setViewState] = useState<ViewState>(INITIAL_VIEW);
   const [targetLocation, setTargetLocation] = useState<string | null>(null);
+  const [destinationCoords, setDestinationCoords] = useState<[number, number] | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
   const [heatmapData, setHeatmapData] = useState<FeatureCollection | null>(null);
   const [showHeatmap, setShowHeatmap] = useState(false);
@@ -261,6 +262,7 @@ export default function MapView() {
           showHeatmap={showHeatmap}
           sightings={sightings}
           onSightingVote={fetchSightings}
+          destinationCoords={destinationCoords}
         />
         {isCustomer && locations.length === 0 && (
           <div style={{
@@ -374,6 +376,7 @@ export default function MapView() {
               onCoordsChange={setDriverCoords}
               flyTo={flyTo}
               onTargetLocationChange={setTargetLocation}
+              onDestinationCoordsChange={setDestinationCoords}
             />
             {isApprovedDriver && (
               <RoutePanel driverCoords={driverCoords} targetLocation={targetLocation} />

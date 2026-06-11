@@ -23,7 +23,7 @@ const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", 
 function formatTime(date: Date): string {
   let hours = date.getHours();
   const minutes = date.getMinutes();
-  const ampm = hours >= 12 ? "pm" : "am";
+  const ampm = hours >= 12 ? "PM" : "AM";
   hours = hours % 12 || 12;
   const minuteStr = minutes === 0 ? "" : `:${String(minutes).padStart(2, "0")}`;
   return `${hours}${minuteStr}${ampm}`;
@@ -108,8 +108,7 @@ export async function POST(req: NextRequest) {
 
   const header =
     `Vendor type: ${vendorType}\n` +
-    `Current time: ${timeStr}\n` +
-    `Day of week: ${dayStr}\n` +
+    `Current time: ${dayStr}, ${timeStr}. Only suggest time windows within 2 hours of now. Do not suggest times that have already passed today.\n` +
     `Driver is currently in ${neighborhood}.\n` +
     (targetLocation ? `Driver is heading to: ${targetLocation}.\n` : "") +
     `Approximate location: ${latitude}, ${longitude}`;
