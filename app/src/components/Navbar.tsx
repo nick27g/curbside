@@ -70,7 +70,7 @@ export default function Navbar() {
           </>
         ) : null}
         <span className="text-sm text-gray-400" style={{ marginLeft: 8 }}>
-          Sprint 7.2 — Location Search
+          Sprint 7.3 — Route Panel Polish
         </span>
       </div>
     </nav>
