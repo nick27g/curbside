@@ -12,7 +12,11 @@ const SYSTEM_PROMPT =
   "Be specific and practical. Prioritize foot traffic patterns and time-of-day behavior. " +
   "Tailor suggestions to the vendor type. " +
   "If historical hot zones are provided, weight your suggestions toward confirmed high-activity areas " +
-  "while still considering time patterns.";
+  "while still considering time patterns.\n" +
+  "STRICT LOCALITY RULES — you must follow these exactly:\n" +
+  "1. All suggested locations must be within 1 mile of the driver's current location or target location. Do not suggest anywhere more than 1 mile away.\n" +
+  "2. Give specific street intersections or named spots (e.g. 'Damen & Milwaukee intersection', 'Lincoln Park Zoo south entrance'), not just neighborhood names.\n" +
+  "3. If the driver has a target location set, bias ALL suggestions within 1 mile of that target.";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 

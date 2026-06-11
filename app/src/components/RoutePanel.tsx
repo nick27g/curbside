@@ -115,7 +115,26 @@ export default function RoutePanel({ driverCoords, targetLocation }: Props) {
                 gap: 4,
               }}
             >
-              <span style={{ color: "white", fontSize: 14, fontWeight: 700 }}>{s.zone}</span>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                <span style={{ color: "white", fontSize: 14, fontWeight: 700 }}>{s.zone}</span>
+                <a
+                  href={`https://maps.google.com/?q=${encodeURIComponent(s.zone + ", Chicago, IL")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    flexShrink: 0,
+                    fontSize: 11,
+                    color: "#9ca3af",
+                    textDecoration: "none",
+                    padding: "2px 7px",
+                    border: "1px solid #374151",
+                    borderRadius: 4,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  🗺️ Navigate
+                </a>
+              </div>
               <span style={{ color: "#818cf8", fontSize: 11, fontWeight: 500 }}>{s.time_window}</span>
               <span style={{ color: "#d1d5db", fontSize: 13 }}>{s.reason}</span>
             </div>
