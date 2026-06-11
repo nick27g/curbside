@@ -263,7 +263,7 @@ export default function AddLocationForm({ onLocationAdded, onCoordsChange, flyTo
   }
 
   return (
-    <div style={{ background: "#1f2937", borderTop: "1px solid #374151", display: "flex", flexDirection: "column" }}>
+    <div style={{ background: "#111827", borderTop: "1px solid #374151", display: "flex", flexDirection: "column" }}>
       {/* ── Location search ── */}
       <div style={{ padding: "10px 16px", borderBottom: "1px solid #374151" }}>
         <div style={{ position: "relative" }}>
@@ -274,7 +274,7 @@ export default function AddLocationForm({ onLocationAdded, onCoordsChange, flyTo
             onBlur={() => setTimeout(() => setShowResults(false), 150)}
             onFocus={() => { if (searchResults.length > 0) setShowResults(true); }}
             placeholder="Search Chicago neighborhoods…"
-            style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }}
+            style={{ padding: "7px 10px", background: "#374151", color: "white", border: "1px solid #4b5563", borderRadius: 6, fontSize: 13, width: "100%", boxSizing: "border-box", outline: "none" }}
           />
           {showResults && searchResults.length > 0 && (
             <div style={{
@@ -318,89 +318,65 @@ export default function AddLocationForm({ onLocationAdded, onCoordsChange, flyTo
           </p>
         )}
       </div>
-    <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      {/* ── Tracking button ── */}
+      <div style={{ padding: "12px 16px", borderBottom: "1px solid #374151" }}>
         <button
           type="button"
           onClick={isTracking ? stopTracking : startTracking}
           style={{
-            padding: "8px 20px",
-            background: isTracking ? "#dc2626" : "#16a34a",
+            width: "100%",
+            padding: "10px",
+            background: isTracking ? "#dc2626" : "#8b5cf6",
             color: "white",
             border: "none",
-            borderRadius: 6,
+            borderRadius: 8,
             cursor: "pointer",
-            fontSize: 13,
-            fontWeight: 600,
+            fontSize: 14,
+            fontWeight: 700,
+            transition: "all 0.2s",
           }}
         >
-          {isTracking ? "Stop Tracking" : "Start Tracking"}
+          {isTracking ? "⏹ Stop Tracking" : "▶ Start Tracking"}
         </button>
         {isTracking && (
-          <span style={{ color: "#34d399", fontSize: 12 }}>
-            GPS active{neighborhood ? ` — ${neighborhood}` : ""}
-          </span>
+          <p style={{ color: "#34d399", fontSize: 12, textAlign: "center", margin: "8px 0 0" }}>
+            📡 GPS active{neighborhood ? ` — ${neighborhood}` : ""}
+          </p>
         )}
       </div>
-      <form onSubmit={handleSubmit} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <label style={{ color: "#9ca3af", fontSize: 11 }}>Latitude</label>
-          <input
-            type="number"
-            step="any"
-            value={latitude}
-            onChange={(e) => setLatitude(e.target.value)}
-            placeholder="41.8827"
-            required
-            style={inputStyle}
-          />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <label style={{ color: "#9ca3af", fontSize: 11 }}>Longitude</label>
-          <input
-            type="number"
-            step="any"
-            value={longitude}
-            onChange={(e) => setLongitude(e.target.value)}
-            placeholder="-87.6233"
-            required
-            style={inputStyle}
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={status === "loading"}
-          style={{
-            padding: "8px 16px",
-            background: status === "loading" ? "#4b5563" : "#3b82f6",
-            color: "white",
-            border: "none",
-            borderRadius: 6,
-            cursor: status === "loading" ? "not-allowed" : "pointer",
-            fontSize: 13,
-            fontWeight: 500,
-          }}
-        >
-          {status === "loading" ? "Adding…" : "Add Location"}
-        </button>
-        {message && (
-          <span style={{ color: status === "success" ? "#34d399" : "#f87171", fontSize: 13, alignSelf: "center" }}>
-            {message}
-          </span>
-        )}
-      </form>
-    </div>
+      {/* ── Manual coordinates (de-emphasized) ── */}
+      <div style={{ padding: "10px 16px" }}>
+        <p style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px", fontWeight: 600 }}>
+          Manual coordinates
+        </p>
+        <form onSubmit={handleSubmit} style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
+          <input type="number" step="any" value={latitude} onChange={(e) => setLatitude(e.target.value)} placeholder="Lat" required style={inputStyleSmall} />
+          <input type="number" step="any" value={longitude} onChange={(e) => setLongitude(e.target.value)} placeholder="Lng" required style={inputStyleSmall} />
+          <button
+            type="submit"
+            disabled={status === "loading"}
+            style={{ padding: "6px 12px", background: status === "loading" ? "#374151" : "#374151", color: status === "loading" ? "#6b7280" : "#9ca3af", border: "1px solid #4b5563", borderRadius: 6, cursor: status === "loading" ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 500, transition: "all 0.2s" }}
+          >
+            {status === "loading" ? "…" : "Add"}
+          </button>
+          {message && (
+            <span style={{ color: status === "success" ? "#34d399" : "#f87171", fontSize: 12, width: "100%" }}>
+              {message}
+            </span>
+          )}
+        </form>
+      </div>
     </div>
   );
 }
 
-const inputStyle: React.CSSProperties = {
-  padding: "7px 10px",
-  background: "#374151",
-  color: "white",
-  border: "1px solid #4b5563",
+const inputStyleSmall: React.CSSProperties = {
+  padding: "5px 8px",
+  background: "#1f2937",
+  color: "#9ca3af",
+  border: "1px solid #374151",
   borderRadius: 6,
-  fontSize: 13,
-  width: 120,
+  fontSize: 12,
+  width: 90,
   outline: "none",
 };

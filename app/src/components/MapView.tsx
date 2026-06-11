@@ -5,7 +5,7 @@ import type { FeatureCollection } from "geojson";
 import MapComponent from "./Map";
 import AddLocationForm from "./AddLocationForm";
 import RoutePanel from "./RoutePanel";
-import { Location, Sighting } from "@/lib/types";
+import { Location, Sighting, VendorType } from "@/lib/types";
 import { useAuth } from "@/context/AuthContext";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { MapRef } from "react-map-gl/mapbox";
@@ -31,6 +31,15 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.asin(Math.sqrt(a));
+}
+
+function nearbyVendorLabel(vendorType: VendorType | null | undefined): string {
+  switch (vendorType) {
+    case "ice_cream_truck": return "🍦 Ice Cream Truck";
+    case "food_truck":      return "🚚 Food Truck";
+    case "hot_dog_cart":    return "🌭 Hot Dog Cart";
+    default:                return "🛒 Vendor";
+  }
 }
 
 // Keeps one pin per vendor — replaces with the newer row, removes if inactive.
@@ -60,7 +69,10 @@ export default function MapView() {
   const [driverCoords, setDriverCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [customerCoords, setCustomerCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [nearbyVendor, setNearbyVendor] = useState<Location | null>(null);
+  const [nearbyVendorDist, setNearbyVendorDist] = useState<number | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  const [vendorFilter, setVendorFilter] = useState<"all" | "ice_cream_truck" | "food_truck" | "other">("all");
+  const autoDismissRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [sightingFormOpen, setSightingFormOpen] = useState(false);
   const [sightingVendorType, setSightingVendorType] = useState("");
   const [sightingDescription, setSightingDescription] = useState("");
@@ -173,6 +185,7 @@ export default function MapView() {
   useEffect(() => {
     if (profile?.role !== "customer" || !customerCoords) {
       setNearbyVendor(null);
+      setNearbyVendorDist(null);
       return;
     }
     let closest: Location | null = null;
@@ -190,10 +203,16 @@ export default function MapView() {
       }
     }
     setNearbyVendor(closest);
+    setNearbyVendorDist(closest ? closestDist : null);
   }, [customerCoords, locations, profile]);
 
   useEffect(() => {
-    if (nearbyVendor !== null) setDismissed(false);
+    if (nearbyVendor !== null) {
+      setDismissed(false);
+      if (autoDismissRef.current) clearTimeout(autoDismissRef.current);
+      autoDismissRef.current = setTimeout(() => setDismissed(true), 8000);
+    }
+    return () => { if (autoDismissRef.current) clearTimeout(autoDismissRef.current); };
   }, [nearbyVendor]);
 
   useEffect(() => {
@@ -211,6 +230,18 @@ export default function MapView() {
   const isDriver = !loading && profile?.role === "driver";
   const isApprovedDriver = isDriver && profile?.status === "approved";
   const isCustomer = !loading && profile?.role === "customer";
+
+  const filteredLocations = vendorFilter === "all" ? locations : locations.filter((loc) => {
+    if (vendorFilter === "other") return !loc.vendor_type || loc.vendor_type === "other" || loc.vendor_type === "hot_dog_cart";
+    return loc.vendor_type === vendorFilter;
+  });
+
+  const FILTER_OPTIONS: { key: typeof vendorFilter; label: string }[] = [
+    { key: "all", label: "All" },
+    { key: "ice_cream_truck", label: "🍦 Ice Cream" },
+    { key: "food_truck", label: "🚚 Food Truck" },
+    { key: "other", label: "🛒 Other" },
+  ];
 
   async function handleSightingSubmit() {
     if (!customerCoords) {
@@ -255,7 +286,7 @@ export default function MapView() {
       <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
         <MapComponent
           mapRef={mapRef}
-          locations={locations}
+          locations={filteredLocations}
           viewState={viewState}
           onViewStateChange={setViewState}
           heatmapData={heatmapData}
@@ -263,38 +294,53 @@ export default function MapView() {
           sightings={sightings}
           onSightingVote={fetchSightings}
           destinationCoords={destinationCoords}
+          customerCoords={customerCoords}
         />
-        {isCustomer && locations.length === 0 && (
-          <div style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            background: "rgba(255,255,255,0.85)",
-            backdropFilter: "blur(4px)",
-            borderRadius: 12,
-            padding: "14px 20px",
-            pointerEvents: "none",
-            textAlign: "center",
-          }}>
-            <p style={{ margin: 0, fontSize: 14, color: "#374151", fontWeight: 500 }}>
-              No vendors are active right now. Check back soon! 🍦
-            </p>
+        {/* ── Vendor type filter bar (customers) ── */}
+        {isCustomer && (
+          <div style={{ position: "absolute", top: 12, left: 12, zIndex: 1, display: "flex", gap: 6, background: "rgba(17,24,39,0.88)", backdropFilter: "blur(6px)", borderRadius: 8, padding: "6px 8px" }}>
+            {FILTER_OPTIONS.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setVendorFilter(key)}
+                style={{
+                  padding: "4px 10px",
+                  background: vendorFilter === key ? "#8b5cf6" : "transparent",
+                  color: vendorFilter === key ? "white" : "#9ca3af",
+                  border: `1px solid ${vendorFilter === key ? "#8b5cf6" : "#374151"}`,
+                  borderRadius: 6,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+              >{label}</button>
+            ))}
           </div>
         )}
+        {/* ── Empty state ── */}
+        {isCustomer && locations.length === 0 && (
+          <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", background: "rgba(255,255,255,0.88)", backdropFilter: "blur(4px)", borderRadius: 12, padding: "14px 20px", pointerEvents: "none", textAlign: "center" }}>
+            <p style={{ margin: 0, fontSize: 14, color: "#374151", fontWeight: 500 }}>No vendors are active right now. Check back soon! 🍦</p>
+          </div>
+        )}
+        {/* ── Proximity toast ── */}
         {nearbyVendor !== null && !dismissed && (
-          <div className="absolute top-0 left-0 right-0 z-10 bg-amber-100 text-amber-900 shadow-md rounded-b-lg px-4 py-3 flex items-start justify-between">
-            <div>
-              <p className="font-semibold text-sm">🛒 A vendor is nearby!</p>
-              <p className="text-xs text-amber-700 mt-0.5">{nearbyVendor.vendor_id}</p>
+          <div style={{ position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 20, background: "#1f2937", border: "1px solid #374151", borderRadius: 12, padding: "12px 16px", boxShadow: "0 4px 20px rgba(0,0,0,0.4)", display: "flex", alignItems: "center", gap: 12, maxWidth: 340, animation: "slideUp 0.3s ease" }}>
+            <style>{`@keyframes slideUp { from { transform: translateX(-50%) translateY(16px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }`}</style>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: "white" }}>
+                {nearbyVendorLabel(nearbyVendor.vendor_type)} is nearby!
+              </p>
+              <p style={{ margin: "2px 0 0", fontSize: 11, color: "#9ca3af" }}>
+                {nearbyVendorDist !== null ? `${nearbyVendorDist.toFixed(1)} miles away` : "Within 0.5 miles"}
+              </p>
             </div>
             <button
-              onClick={() => setDismissed(true)}
-              className="ml-4 text-lg font-bold leading-none text-amber-700 hover:text-amber-900"
-              aria-label="Dismiss"
-            >
-              ×
-            </button>
+              onClick={() => flyTo([nearbyVendor.longitude, nearbyVendor.latitude])}
+              style={{ padding: "6px 12px", background: "#8b5cf6", color: "white", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.2s", whiteSpace: "nowrap", flexShrink: 0 }}
+            >Show on Map</button>
+            <button onClick={() => setDismissed(true)} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 20, cursor: "pointer", padding: 0, lineHeight: 1, flexShrink: 0 }}>×</button>
           </div>
         )}
         {isCustomer && (

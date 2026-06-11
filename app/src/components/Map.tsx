@@ -23,6 +23,7 @@ interface MapProps {
   onSightingVote?: () => void;
   mapRef?: React.RefObject<MapRef | null>;
   destinationCoords?: [number, number] | null;
+  customerCoords?: { latitude: number; longitude: number } | null;
 }
 
 const VENDOR_PIN: Record<string, { emoji: string; border: string }> = {
@@ -47,6 +48,24 @@ function vendorTypeLabel(vendorType: VendorType | null): string {
   }
 }
 
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 3958.8;
+  const toRad = (d: number) => d * (Math.PI / 180);
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
+function formatRelativeTime(timestamp: string): string {
+  const mins = Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000);
+  if (mins < 1) return "Updated just now";
+  if (mins === 1) return "Updated 1 min ago";
+  if (mins < 60) return `Updated ${mins} mins ago`;
+  const hrs = Math.floor(mins / 60);
+  return `Updated ${hrs} hr${hrs > 1 ? "s" : ""} ago`;
+}
+
 function createCircleGeoJSON(center: [number, number], radiusMiles: number): FeatureCollection {
   const [lng, lat] = center;
   const latRadius = radiusMiles / 69.0;
@@ -62,9 +81,13 @@ function createCircleGeoJSON(center: [number, number], radiusMiles: number): Fea
   };
 }
 
-export default function MapComponent({ locations, viewState, onViewStateChange, heatmapData, showHeatmap, sightings = [], onSightingVote, mapRef, destinationCoords }: MapProps) {
+export default function MapComponent({
+  locations, viewState, onViewStateChange, heatmapData, showHeatmap,
+  sightings = [], onSightingVote, mapRef, destinationCoords, customerCoords,
+}: MapProps) {
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   const [activeSightingId, setActiveSightingId] = useState<string | null>(null);
+  const [activeSightingNeighborhood, setActiveSightingNeighborhood] = useState<string | null>(null);
   const [activeLocId, setActiveLocId] = useState<string | null>(null);
   const [popupNeighborhood, setPopupNeighborhood] = useState<string | null>(null);
   const [hoverLocId, setHoverLocId] = useState<string | null>(null);
@@ -85,6 +108,21 @@ export default function MapComponent({ locations, viewState, onViewStateChange, 
     setPopupNeighborhood(null);
     const name = await reverseGeocode(loc.latitude, loc.longitude);
     setPopupNeighborhood(name);
+  }
+
+  async function handleSightingClick(sightingId: string) {
+    if (activeSightingId === sightingId) {
+      setActiveSightingId(null);
+      setActiveSightingNeighborhood(null);
+      return;
+    }
+    setActiveSightingId(sightingId);
+    setActiveSightingNeighborhood(null);
+    const sighting = sightings.find((s) => s.id === sightingId);
+    if (sighting) {
+      const name = await reverseGeocode(sighting.latitude, sighting.longitude);
+      setActiveSightingNeighborhood(name);
+    }
   }
 
   if (!token) {
@@ -108,6 +146,7 @@ export default function MapComponent({ locations, viewState, onViewStateChange, 
       });
       onSightingVote?.();
       setActiveSightingId(null);
+      setActiveSightingNeighborhood(null);
     } catch {
       // silently ignore
     } finally {
@@ -132,44 +171,22 @@ export default function MapComponent({ locations, viewState, onViewStateChange, 
     >
       {showHeatmap && heatmapData && (
         <Source id="route-heatmap" type="geojson" data={heatmapData}>
-          <Layer
-            id="route-heatmap-layer"
-            type="heatmap"
-            paint={{
-              "heatmap-radius": 70,
-              "heatmap-opacity": 0.75,
-              "heatmap-intensity": 1,
-            }}
-          />
+          <Layer id="route-heatmap-layer" type="heatmap" paint={{ "heatmap-radius": 70, "heatmap-opacity": 0.75, "heatmap-intensity": 1 }} />
         </Source>
       )}
 
       {/* ── Destination radius ring ── */}
       {circleGeoJSON && (
         <Source id="destination-ring" type="geojson" data={circleGeoJSON}>
-          <Layer
-            id="destination-ring-fill"
-            type="fill"
-            paint={{ "fill-color": "#ef4444", "fill-opacity": 0.08 }}
-          />
-          <Layer
-            id="destination-ring-border"
-            type="line"
-            paint={{ "line-color": "#ef4444", "line-opacity": 0.4, "line-width": 2 }}
-          />
+          <Layer id="destination-ring-fill" type="fill" paint={{ "fill-color": "#ef4444", "fill-opacity": 0.08 }} />
+          <Layer id="destination-ring-border" type="line" paint={{ "line-color": "#ef4444", "line-opacity": 0.4, "line-width": 2 }} />
         </Source>
       )}
 
       {/* ── Destination marker ── */}
       {destinationCoords && (
         <Marker latitude={destinationCoords[1]} longitude={destinationCoords[0]}>
-          <div style={{
-            width: 36, height: 36, borderRadius: "50%",
-            background: "#ef4444", border: "3px solid #dc2626",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 16, boxShadow: "0 2px 8px rgba(239,68,68,0.5)",
-            cursor: "default",
-          }}>📌</div>
+          <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#ef4444", border: "3px solid #dc2626", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, boxShadow: "0 2px 8px rgba(239,68,68,0.5)", cursor: "default" }}>📌</div>
         </Marker>
       )}
 
@@ -179,13 +196,7 @@ export default function MapComponent({ locations, viewState, onViewStateChange, 
         return (
           <Marker key={loc.id} latitude={loc.latitude} longitude={loc.longitude}>
             <div
-              style={{
-                width: 36, height: 36, borderRadius: "50%",
-                background: "white", border: `3px solid ${border}`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 18, boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
-                cursor: "pointer",
-              }}
+              style={{ width: 36, height: 36, borderRadius: "50%", background: "white", border: `3px solid ${border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, boxShadow: "0 2px 6px rgba(0,0,0,0.25)", cursor: "pointer", transition: "transform 0.15s" }}
               onClick={() => handleLocationClick(loc)}
               onMouseEnter={() => setHoverLocId(loc.id)}
               onMouseLeave={() => setHoverLocId(null)}
@@ -196,88 +207,50 @@ export default function MapComponent({ locations, viewState, onViewStateChange, 
 
       {/* ── Vendor hover tooltip ── */}
       {hoverLocation && (
-        <Popup
-          latitude={hoverLocation.latitude}
-          longitude={hoverLocation.longitude}
-          closeButton={false}
-          anchor="top"
-          offset={22}
-          focusAfterOpen={false}
-        >
+        <Popup latitude={hoverLocation.latitude} longitude={hoverLocation.longitude} closeButton={false} anchor="top" offset={22} focusAfterOpen={false}>
           <div style={{ fontSize: 12, padding: "2px 4px", whiteSpace: "nowrap", pointerEvents: "none" }}>
             {vendorTypeLabel(hoverLocation.vendor_type)}
           </div>
         </Popup>
       )}
 
-      {/* ── Vendor click popup (neighborhood) ── */}
+      {/* ── Vendor click popup ── */}
       {activeLocation && (
-        <Popup
-          latitude={activeLocation.latitude}
-          longitude={activeLocation.longitude}
-          onClose={() => { setActiveLocId(null); setPopupNeighborhood(null); }}
-          closeButton
-          anchor="bottom"
-        >
-          <div className="p-2 min-w-[160px]">
+        <Popup latitude={activeLocation.latitude} longitude={activeLocation.longitude} onClose={() => { setActiveLocId(null); setPopupNeighborhood(null); }} closeButton anchor="bottom">
+          <div className="p-2 min-w-[170px]">
             <p className="font-semibold text-sm text-gray-800">{vendorTypeLabel(activeLocation.vendor_type)}</p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {popupNeighborhood ?? "Locating…"}
-            </p>
+            <p className="text-xs text-gray-500 mt-0.5">{popupNeighborhood ?? "Locating…"}</p>
+            {customerCoords && (
+              <p className="text-xs text-gray-400 mt-0.5">
+                {haversineDistance(customerCoords.latitude, customerCoords.longitude, activeLocation.latitude, activeLocation.longitude).toFixed(1)} miles away
+              </p>
+            )}
+            <p className="text-xs text-gray-400 mt-0.5">{formatRelativeTime(activeLocation.timestamp)}</p>
           </div>
         </Popup>
       )}
 
       {/* ── Sighting pins ── */}
       {sightings.map((s) => (
-        <Marker
-          key={s.id}
-          latitude={s.latitude}
-          longitude={s.longitude}
-          onClick={() => setActiveSightingId((prev) => (prev === s.id ? null : s.id))}
-        >
-          <div
-            className="w-4 h-4 rounded-full bg-amber-400 border-2 border-amber-600 cursor-pointer"
-            title="Unverified sighting"
-          />
+        <Marker key={s.id} latitude={s.latitude} longitude={s.longitude} onClick={() => handleSightingClick(s.id)}>
+          <div className="w-4 h-4 rounded-full bg-amber-400 border-2 border-amber-600 cursor-pointer" title="Unverified sighting" />
         </Marker>
       ))}
 
       {/* ── Sighting popup ── */}
       {activeSighting && (
-        <Popup
-          latitude={activeSighting.latitude}
-          longitude={activeSighting.longitude}
-          onClose={() => setActiveSightingId(null)}
-          closeButton
-          anchor="bottom"
-        >
+        <Popup latitude={activeSighting.latitude} longitude={activeSighting.longitude} onClose={() => { setActiveSightingId(null); setActiveSightingNeighborhood(null); }} closeButton anchor="bottom">
           <div className="p-2 min-w-[180px]">
-            <p className="font-semibold text-sm text-gray-800">
-              {activeSighting.vendor_type ?? "Unknown vendor"}
-            </p>
-            {activeSighting.description && (
-              <p className="text-xs text-gray-600 mt-0.5">{activeSighting.description}</p>
-            )}
+            <p className="font-semibold text-sm text-gray-800">{activeSighting.vendor_type ?? "Unknown vendor"}</p>
+            {activeSightingNeighborhood && <p className="text-xs text-gray-400 mt-0.5">{activeSightingNeighborhood}</p>}
+            {activeSighting.description && <p className="text-xs text-gray-600 mt-0.5">{activeSighting.description}</p>}
             <div className="flex gap-3 mt-1.5 text-xs text-gray-500">
               <span>✓ {activeSighting.confirmed_count} confirmed</span>
               <span>✗ {activeSighting.dismissed_count} dismissed</span>
             </div>
             <div className="flex gap-2 mt-2">
-              <button
-                onClick={() => handleVote(activeSighting.id, "confirm")}
-                disabled={voting}
-                className="flex-1 bg-green-100 hover:bg-green-200 text-green-800 text-xs font-semibold rounded px-2 py-1 disabled:opacity-50"
-              >
-                Confirm
-              </button>
-              <button
-                onClick={() => handleVote(activeSighting.id, "dismiss")}
-                disabled={voting}
-                className="flex-1 bg-red-100 hover:bg-red-200 text-red-800 text-xs font-semibold rounded px-2 py-1 disabled:opacity-50"
-              >
-                Dismiss
-              </button>
+              <button onClick={() => handleVote(activeSighting.id, "confirm")} disabled={voting} className="flex-1 bg-green-100 hover:bg-green-200 text-green-800 text-xs font-semibold rounded px-2 py-1 disabled:opacity-50">Confirm</button>
+              <button onClick={() => handleVote(activeSighting.id, "dismiss")} disabled={voting} className="flex-1 bg-red-100 hover:bg-red-200 text-red-800 text-xs font-semibold rounded px-2 py-1 disabled:opacity-50">Dismiss</button>
             </div>
           </div>
         </Popup>
