@@ -23,13 +23,14 @@ Curbside is a real-time street food vendor tracking app that connects hungry cus
 
 ## Features
 
-- **Live vendor map** with real-time pins (Mapbox + Supabase Realtime)
+- **Live vendor map** with real-time pins, custom vendor-type icons, hover tooltips, and neighborhood popups
 - **Role-based auth**: customer, driver, admin (Supabase Auth)
-- **Driver GPS tracking** with live location broadcast
+- **Driver GPS tracking** with live location broadcast, reverse geocoded neighborhood status, and location search with map flyTo
 - **Historical route storage** and driver-only heat map layer
-- **AI route suggestions** powered by Anthropic API — tiered to work with zero historical data through rich multi-session patterns
-- **Proximity alerts** for nearby vendors (Haversine distance, 0.5 mile threshold)
+- **AI route suggestions** powered by Anthropic API — tiered by history depth, hyper-local (1-mile radius), time-aware, and target-location biased
+- **Proximity alerts** for nearby vendors — toast notification with vendor type, distance, and "Show on Map" button
 - **Community sightings** with 2-hour auto-expiry and crowd-sourced confirm/dismiss voting
+- **Customer vendor filter** to show only ice cream trucks, food trucks, or other vendors
 - **React Native + Expo** companion mobile app with Mapbox native maps and push notifications
 - **Vercel deployment** with automatic CI/CD on every push
 
@@ -111,9 +112,47 @@ Built a companion Expo app with Mapbox native maps, reusing the same Supabase au
 
 ### Sprint 7.1: Reverse Geocoding
 
-Replaced raw lat/lng displays with human-readable neighborhood names using the Mapbox Reverse Geocoding API. Driver GPS status shows the current neighborhood (debounced to fire only after ~100m of movement). Clicking a vendor pin on the customer map opens a popup with the neighborhood name. AI route suggestions now include the driver's current neighborhood in the prompt for more geographically grounded recommendations.
+- Shared `lib/reverseGeocode.ts` utility calls the Mapbox Reverse Geocoding API and returns a neighborhood name (falls back to "Chicago area")
+- Driver GPS status shows current neighborhood, debounced to only re-geocode after ~100m of movement
+- Clicking a vendor pin opens a popup with the neighborhood name
+- AI route suggestions include the driver's current neighborhood in the prompt
 
 ![Sprint 7.1 — Reverse Geocoding](screenshots/sprint-7-1-reverse-geocoding.png)
+
+### Sprint 7.2: Vendor Location Search
+
+- Search bar in the driver panel with 300ms debounce and Chicago-scoped Mapbox forward geocoding (bbox + proximity bias)
+- Up to 5 dropdown suggestions; selecting one calls `map.flyTo` (zoom 14), sets a "Heading to" label, and places a 📌 destination marker
+- Target location passed through to the AI route prompt: "Driver is heading to: {place}"
+
+### Sprint 7.3: Route Panel Polish + QOL
+
+- Suggestion cards container is scrollable (`max-height` + `overflow-y: auto`) — cards no longer push off screen
+- Loading spinner and "Thinking…" state on the route suggestion button during AI fetch
+- Customer empty state overlay when no vendors are active
+- Stop Tracking requires a `window.confirm` to prevent accidental taps
+- Hyper-local AI constraints: 1-mile radius, specific street intersections, bias toward target location
+- Navigate button on each suggestion card opens Google Maps in a new tab
+
+### Sprint 7.4: Map Polish + Smart AI Timing
+
+- Custom circular vendor-type pins (36px): 🍦 purple border for ice cream, 🚚 amber for food trucks, 🌭 orange for hot dog carts, 📍 indigo default
+- Red destination marker (📌) placed on the map when a search result is selected
+- 1-mile GeoJSON radius ring drawn around the destination (red fill at 8% opacity, red border at 40%)
+- Hover tooltip on vendor pins shows vendor type (e.g. "🍦 Ice Cream Truck")
+- AI prompt includes current day + time ("Wednesday, 6:15 PM") with a 2-hour time-window constraint
+- `GET /api/locations` enriched with `vendor_type` via a batched profiles join — no N+1
+
+### Sprint 7.5: Customer Experience + UI Overhaul
+
+- **Vendor filter bar**: customers can filter pins by type — All / 🍦 Ice Cream / 🚚 Food Truck / 🛒 Other
+- **Sighting popups**: reverse geocoded neighborhood name shown on community sighting clicks
+- **Distance to vendor**: vendor click popup shows miles from customer's current location
+- **Last seen timestamp**: popup shows "Updated X mins ago" from the location row's timestamp
+- **Proximity toast**: redesigned as a dark bottom-center slide-up toast with vendor type, distance, "Show on Map" flyTo button, and 8-second auto-dismiss
+- **Navbar**: sprint label replaced with live "🟢 X vendors active" count for customers and a driver status badge (Approved ✓ / Pending)
+- **Driver panel**: full-width purple tracking button, GPS status centered below it, manual coordinate fields de-emphasized
+- **Color pass**: primary action color unified to `#8b5cf6` throughout; consistent muted grey secondary text; smooth button transitions
 
 ---
 

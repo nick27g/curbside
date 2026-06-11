@@ -90,6 +90,23 @@ drivers share location and get AI route suggestions.
   fire-and-forget on every driver GPS tick: fetches all nearby customers
   (within 0.5mi Haversine), looks up their push tokens, and dispatches
   notifications without blocking the location insert response
+- lib/reverseGeocode.ts: shared Mapbox reverse geocoding utility used in
+  client components (AddLocationForm, Map.tsx) and server API routes
+  (route-suggest); accepts (lat, lng), returns place_name or "Chicago area"
+- GET /api/locations enriches location rows with vendor_type from profiles
+  via a two-query batch (fetch locations, then fetch profiles for unique
+  vendor_ids); vendor_type is on Location type in types.ts
+- Destination search: AddLocationForm holds destinationCoords state, passes
+  up to MapView via onDestinationCoordsChange; MapView passes to MapComponent;
+  Map.tsx renders a red destination Marker + GeoJSON radius ring Source/Layer
+- mapRef (useRef<MapRef>) lives in MapView, passed as named prop to MapComponent
+  which forwards it to MapGL ref; MapView exposes flyTo callback used by
+  AddLocationForm (search select) and proximity toast (Show on Map button)
+- Proximity alert is now a dark bottom-center toast in MapView.tsx; auto-dismisses
+  after 8s via autoDismissRef; resets on each new nearbyVendor; nearbyVendorDist
+  stored alongside nearbyVendor for distance display
+- Customer vendor filter (vendorFilter state in MapView) computes filteredLocations
+  before passing to MapComponent; "other" bucket catches hot_dog_cart + other + null
 
 ## Project Structure
 - /app — Next.js app
@@ -100,21 +117,43 @@ drivers share location and get AI route suggestions.
 - /app/src/lib/types.ts — shared TypeScript types
 
 ## Current Status
-Sprint 6.5 server-side complete. Next: Final Phase — Security, Polish, and Launch.
+Sprint 7.5 complete. Next: Final Phase — Rate limiting, Zod input validation, RLS audit.
 
-Sprint 5.4 — Proximity alerts: customer geolocation (watchPosition), Haversine
-distance detection, dismissible amber banner when a driver pin is within 0.5mi.
+Sprint 7.1 — Reverse geocoding: lib/reverseGeocode.ts utility (Mapbox reverse geocoding
+API); neighborhood name shown in driver GPS status (debounced ~100m), vendor pin click
+popup, and AI route prompt ("Driver is currently in {neighborhood}").
 
-Sprint 5.5 — Community sightings: report form with rate limiting, sighting pins
-on map (amber circles), confirm/dismiss voting, 2-hour auto-expiry via DB default.
+Sprint 7.2 — Vendor location search: search bar in AddLocationForm with 300ms debounce,
+Chicago-bbox-scoped Mapbox forward geocoding, up to 5 dropdown results; selecting a
+result calls mapRef.current.flyTo (zoom 14), sets targetLocation state, shows "Heading
+to: {place}" label; targetLocation passed to RoutePanel → /api/ai/route-suggest body →
+included in AI prompt ("Driver is heading to: {target}").
 
-Sprint 6.4 — Mobile auth bridge: proxy.ts matcher updated to exclude /api/ routes;
-getUserFromRequest updated to accept Bearer tokens so the React Native mobile app
-can authenticate against all existing API routes. Live on main at curbside-nine.vercel.app.
+Sprint 7.3 — Route panel polish: suggestion cards container max-height + overflow-y:auto
+(scrollable); loading spinner + "Thinking…" text during AI fetch; customer empty state
+overlay ("No vendors are active right now. Check back soon! 🍦"); stop tracking
+confirmation (window.confirm); search bar placeholder updated to "Search Chicago
+neighborhoods…"; hyper-local AI constraints added to system prompt (1-mile radius,
+specific intersections, bias toward target).
 
-Sprint 6.5 — Server-side push notification proximity trigger: POST
-/api/notifications/send-proximity live on Vercel; /api/locations/create triggers
-proximity notifications fire-and-forget on every driver GPS update.
+Sprint 7.4 — Map polish: custom circular vendor-type pins (36px, white background,
+type-specific border color + emoji: 🍦 purple, 🚚 amber, 🌭 orange, 📍 indigo default);
+destination marker (red circle with 📌) on selected search result; 1-mile GeoJSON radius
+ring around destination (red fill 8% opacity, red border 40% opacity); vendor hover
+tooltip (Popup on mouseenter with vendor type label); AI prompt includes current time
+formatted as "Day, H:MMam/pm" with 2-hour time-window constraint; GET /api/locations
+enriched with vendor_type via profiles join (two-query batch, no N+1); vendor_type added
+to Location type.
+
+Sprint 7.5 — Customer/UI overhaul: customer vendor filter bar (All / 🍦 Ice Cream /
+🚚 Food Truck / 🛒 Other) overlaid top-left of map; sighting popup includes reverse
+geocoded neighborhood; vendor click popup shows distance in miles (Haversine from
+customerCoords) and relative "Updated X mins ago" timestamp; proximity alert replaced
+with dark bottom-center toast (vendor type + distance + "Show on Map" flyTo button +
+auto-dismiss after 8s); Navbar sprint label replaced with live vendor count for customers
+(🟢/🔴) and driver status badge (Approved ✓ / Pending); driver panel layout overhauled
+(full-width purple tracking button, GPS status centered below, manual coords de-emphasized);
+primary action color unified to #8b5cf6 throughout.
 
 ## Supabase Tables
 locations:      id, vendor_id (uuid, FK to auth.users), latitude, longitude,
